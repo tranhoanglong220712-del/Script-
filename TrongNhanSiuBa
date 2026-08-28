@@ -1,0 +1,422 @@
+-- TRONGNHAN HUB - COMPLETE FULL CODE
+-- BẢN QUYỀN: TrongNhan
+-- TẤT CẢ 22 SCRIPTS
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+
+-- 🌌 INTRO GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "GraiIntro"
+gui.IgnoreGuiInset = true
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local bg = Instance.new("Frame")
+bg.Size = UDim2.new(1,0,1,0)
+bg.BackgroundColor3 = Color3.fromRGB(0,0,0)
+bg.BackgroundTransparency = 0.3
+bg.Parent = gui
+
+local logo = Instance.new("ImageLabel")
+logo.Parent = gui
+logo.AnchorPoint = Vector2.new(0.5,0.5)
+logo.Position = UDim2.new(0.5,0,0.5,0)
+logo.Size = UDim2.new(0,0,0,0)
+logo.BackgroundTransparency = 1
+logo.Image = "http://www.roblox.com/asset/?id=77111304194141"
+logo.ImageTransparency = 1
+
+local tween1 = TweenService:Create(logo, TweenInfo.new(1.5, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out), {
+    Size = UDim2.new(0,200,0,200),
+    ImageTransparency = 0
+})
+tween1:Play()
+
+task.spawn(function()
+    while logo and logo.Parent do
+        logo.Rotation = logo.Rotation + 0.5
+        task.wait(0.01)
+    end
+end)
+
+local msg = Instance.new("TextLabel")
+msg.Parent = gui
+msg.AnchorPoint = Vector2.new(0.5,0)
+msg.Position = UDim2.new(0.5,0,0.75,0)
+msg.Size = UDim2.new(0,600,0,80)
+msg.BackgroundTransparency = 1
+msg.Text = "TrongNhan Hub"
+msg.TextColor3 = Color3.fromRGB(0,255,255)
+msg.Font = Enum.Font.GothamBlack
+msg.TextScaled = true
+msg.TextStrokeTransparency = 0
+msg.TextStrokeColor3 = Color3.fromRGB(0,0,0)
+msg.TextTransparency = 1
+
+local tween2 = TweenService:Create(msg, TweenInfo.new(1.2), {TextTransparency=0})
+tween2:Play()
+
+task.wait(4)
+
+local tween3 = TweenService:Create(logo, TweenInfo.new(1.2), {ImageTransparency=1})
+local tween4 = TweenService:Create(msg, TweenInfo.new(1.2), {TextTransparency=1})
+local tween5 = TweenService:Create(bg, TweenInfo.new(1.2), {BackgroundTransparency=1})
+tween3:Play()
+tween4:Play()
+tween5:Play()
+task.wait(1.5)
+gui:Destroy()
+
+-- 📦 LOAD FLUENT
+repeat task.wait() until game:IsLoaded()
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+if not Fluent then
+    warn("Fluent failed to load")
+    return
+end
+
+-- TẠO WINDOW CHÍNH
+local Window = Fluent:CreateWindow({
+    Title="TrongNhan Hub",
+    SubTitle="22 Scripts - Tất Cả Miễn Phí",
+    TabWidth=157,
+    Size=UDim2.fromOffset(450,350),
+    Acrylic=true,
+    Theme="Dark",
+    MinimizeKey=Enum.KeyCode.End
+})
+
+if not Window then
+    warn("Window creation failed")
+    return
+end
+
+-- ẨN WINDOW BAN ĐẦU
+Window:SetEnabled(false)
+
+-- TẠO NÚT MỞ MENU
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local ToggleButton = Instance.new("ImageButton")
+ToggleButton.Parent = ScreenGui
+ToggleButton.BackgroundColor3 = Color3.fromRGB(0,0,0)
+ToggleButton.BackgroundTransparency = 0.2
+ToggleButton.BorderSizePixel = 0
+ToggleButton.Position = UDim2.new(0.02,0,0.15,0)
+ToggleButton.Size = UDim2.new(0,60,0,60)
+ToggleButton.Image = "http://www.roblox.com/asset/?id=77111304194141"
+ToggleButton.AutoButtonColor = true
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.Parent = ToggleButton
+ToggleCorner.CornerRadius = UDim.new(1,10)
+
+local ButtonLabel = Instance.new("TextLabel")
+ButtonLabel.Parent = ToggleButton
+ButtonLabel.BackgroundTransparency = 1
+ButtonLabel.Size = UDim2.new(1,0,0.3,0)
+ButtonLabel.Position = UDim2.new(0,0,0.7,0)
+ButtonLabel.Text = "MENU"
+ButtonLabel.TextColor3 = Color3.fromRGB(255,255,255)
+ButtonLabel.Font = Enum.Font.GothamBold
+ButtonLabel.TextScaled = true
+ButtonLabel.TextStrokeColor3 = Color3.fromRGB(0,0,0)
+ButtonLabel.TextStrokeTransparency = 0.5
+
+local menuVisible = false
+
+local function ToggleMenu()
+    menuVisible = not menuVisible
+    Window:SetEnabled(menuVisible)
+    if menuVisible then
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(0,255,0)
+    else
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(0,0,0)
+    end
+end
+
+ToggleButton.MouseButton1Click:Connect(ToggleMenu)
+ToggleButton.MouseButton1Down:Connect(ToggleMenu)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.End then
+        ToggleMenu()
+    end
+end)
+
+-- TẠO TAB
+local Tabs = {
+    Main0 = Window:AddTab({Title="Thông Tin"}),
+    Main1 = Window:AddTab({Title="Blox Fruits"}),
+    Main2 = Window:AddTab({Title="Grow A Garden"}),
+    Main3 = Window:AddTab({Title="99 Nights"}),
+    Main4 = Window:AddTab({Title="Buff Speed"})
+}
+
+-- ===================== TAB 0: THÔNG TIN =====================
+Tabs.Main0:AddButton({
+    Title="📺 Youtuber TrongNhan",
+    Description="Subscribe kênh Youtube",
+    Callback=function()
+        if setclipboard then
+            setclipboard("https://youtube.com/@gTrongNhan-u2k")
+            print("✅ Đã copy link Youtube!")
+        end
+    end
+})
+
+Tabs.Main0:AddParagraph({
+    Title="📊 Thông Tin Hub",
+    Content="Tổng hợp 22 script miễn phí\nBlox Fruits: 10 scripts\nGrow A Garden: 4 scripts\n99 Nights: 3 scripts\nBuff Speed: 5 scripts"
+})
+
+Tabs.Main0:AddButton({
+    Title="❌ Thoát Hub",
+    Description="Đóng toàn bộ UI",
+    Callback=function()
+        ScreenGui:Destroy()
+        Window:SetEnabled(false)
+        Window:Destroy()
+        print("✅ Đã đóng TrongNhan Hub")
+    end
+})
+
+-- ===================== TAB 1: BLOX FRUITS (10 SCRIPTS) =====================
+Tabs.Main1:AddButton({
+    Title="1. Redz Hub",
+    Description="Auto Farm, Raid, Fruit, ESP, Speed, Fly",
+    Callback=function()
+        local Settings = {JoinTeam="Pirates", Translator=true}
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/newredz/BloxFruits/refs/heads/main/Source.luau"))(Settings)
+    end
+})
+
+Tabs.Main1:AddButton({
+    Title="2. w-azure Hub",
+    Description="Auto Farm, Raid, Sea Beast, Fruit Sniper",
+    Callback=function()
+        loadstring(game:HttpGet("https://api.luarmor.net/files/v3/loaders/85e904ae1ff30824c1aa007fc7324f8f.lua"))()
+    end
+})
+
+Tabs.Main1:AddButton({
+    Title="3. Fix Lag",
+    Description="Tối ưu FPS, giảm lag",
+    Callback=function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/TurboLite/Script/main/FixLag.lua"))()
+    end
+})
+
+Tabs.Main1:AddButton({
+    Title="4. Min Hub",
+    Description="Auto Farm, Raid, Dungeon, Observation Haki",
+    Callback=function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/LuaCrack/Min/refs/heads/main/MinXt2Eng"))()
+    end
+})
+
+Tabs.Main1:AddButton({
+    Title="5. Speed Hub X",
+    Description="Auto Farm, Raid, Fruit, Sea, ESP",
+    Callback=function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/AhmadV99/Speed-Hub-X/main/Speed%20Hub%20X.lua", true))()
+    end
+})
+
+Tabs.Main1:AddButton({
+    Title="6. Than Hub",
+    Description="Auto Farm, Raid, Fruit, Stats, Quest",
+    Callback=function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/thantzy/thanhub/refs/heads/main/thanv1"))()
+    end
+})
+
+Tabs.Main1:AddButton({
+    Title="7. BlueX Hub",
+    Description="Auto Farm, Raid, Fruit, Sea, ESP, Fly",
+    Callback=function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Dev-BlueX/BlueX-Hub/refs/heads/main/Main.lua"))()
+    end
+})
+
+Tabs.Main1:AddButton({
+    Title="8. Tsoul Hub",
+    Description="Auto Farm, Raid, Fruit, Sea Beast",
+    Callback=function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Tsuo7/TsuoHub/main/Tsuoscripts"))()
+    end
+})
+
+Tabs.Main1:AddButton({
+    Title="9. Volcano Hub V3",
+    Description="Auto Farm, Raid, Fruit, Stats, ESP",
+    Callback=function()
+        loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/indexeduu/BF-NewVer/refs/heads/main/V3New.lua"))()
+    end
+})
+
+Tabs.Main1:AddButton({
+    Title="10. HOHO Hub",
+    Description="Auto Farm, Raid, Fruit, Sea, Haki",
+    Callback=function()
+        loadstring(game:HttpGet('https://raw.githubusercontent.com/acsu123/HOHO_H/main/Loading_UI'))()
+    end
+})
+
+-- ===================== TAB 2: GROW A GARDEN (4 SCRIPTS) =====================
+Tabs.Main2:AddButton({
+    Title="1. Nat Hub",
+    Description="Auto Water, Harvest, Plant, Collect, Upgrade",
+    Callback=function()
+        loadstring(game:HttpGet("https://get.nathub.xyz/loader"))()
+    end
+})
+
+Tabs.Main2:AddButton({
+    Title="2. Speed Hub X",
+    Description="Auto Plant, Harvest, Water, Collect, Upgrade",
+    Callback=function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/AhmadV99/Speed-Hub-X/main/Speed%20Hub%20X.lua", true))()
+    end
+})
+
+Tabs.Main2:AddButton({
+    Title="3. No Lag Hub",
+    Description="Auto Farm, Collect, Plant, Water, Fix Lag",
+    Callback=function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/NoLag-id/No-Lag-HUB/refs/heads/main/Loader/Main.lua"))()
+    end
+})
+
+Tabs.Main2:AddButton({
+    Title="4. BlueX Hub",
+    Description="Auto Plant, Harvest, Collect, Upgrade, Water",
+    Callback=function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Dev-BlueX/BlueX-Hub/refs/heads/main/Main.lua"))()
+    end
+})
+
+-- ===================== TAB 3: 99 NIGHTS (3 SCRIPTS) =====================
+Tabs.Main3:AddButton({
+    Title="1. Voidware Hub",
+    Description="Auto Farm, Gather, Craft, Upgrade, Quest",
+    Callback=function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/VapeVoidware/VW-Add/main/nightsintheforest.lua", true))()
+    end
+})
+
+Tabs.Main3:AddButton({
+    Title="2. Speed Hub X",
+    Description="Auto Farm, Gather, Craft, Upgrade",
+    Callback=function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/AhmadV99/Speed-Hub-X/main/Speed%20Hub%20X.lua", true))()
+    end
+})
+
+Tabs.Main3:AddButton({
+    Title="3. Pulse Hub",
+    Description="Auto Farm, Collect, Craft, Quest, Upgrade",
+    Callback=function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Chavels123/Loader/refs/heads/main/loader.lua"))()
+    end
+})
+
+-- ===================== TAB 4: BUFF SPEED (5 SCRIPTS) =====================
+local speedValue = 16
+
+Tabs.Main4:AddSlider({
+    Title="⚡ Điều chỉnh tốc độ",
+    Description="Kéo thanh trượt để tăng/giảm",
+    Min=0,
+    Max=250,
+    Default=16,
+    Value=16,
+    Callback=function(Value)
+        speedValue = Value
+        local char = player.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = Value
+        end
+    end
+})
+
+Tabs.Main4:AddButton({
+    Title="🐢 Speed 16 (Normal)",
+    Description="Tốc độ mặc định",
+    Callback=function()
+        speedValue = 16
+        local char = player.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = 16
+        end
+        print("✅ Đã set speed 16")
+    end
+})
+
+Tabs.Main4:AddButton({
+    Title="🏃 Speed 50 (Fast)",
+    Description="Chạy nhanh",
+    Callback=function()
+        speedValue = 50
+        local char = player.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = 50
+        end
+        print("✅ Đã set speed 50")
+    end
+})
+
+Tabs.Main4:AddButton({
+    Title="🚀 Speed 100 (Super Fast)",
+    Description="Chạy siêu nhanh",
+    Callback=function()
+        speedValue = 100
+        local char = player.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = 100
+        end
+        print("✅ Đã set speed 100")
+    end
+})
+
+Tabs.Main4:AddButton({
+    Title="⚡ Speed 250 (Flash)",
+    Description="Chạy như flash",
+    Callback=function()
+        speedValue = 250
+        local char = player.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = 250
+        end
+        print("✅ Đã set speed 250")
+    end
+})
+
+-- TỰ ĐỘNG SET SPEED KHI RESPAWN
+game:GetService("Players").LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(1)
+    local humanoid = char:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.WalkSpeed = speedValue
+    end
+end)
+
+-- HIỆU ỨNG NHẤP NHÁY NÚT MENU
+task.spawn(function()
+    while ToggleButton and ToggleButton.Parent do
+        if not menuVisible then
+            ToggleButton.BackgroundTransparency = 0.2 + math.sin(os.clock() * 2) * 0.1
+        end
+        task.wait(0.05)
+    end
+end)
+
+print("✅ TrongNhan Hub đã sẵn sàng!")
+print("📊 22 Scripts - Tất cả miễn phí")
+print("📱 Nhấn nút MENU để mở/đóng")
