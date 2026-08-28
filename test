@@ -1,0 +1,308 @@
+-- Roblox Turbo Script - TrongNhan (Full 5D + Tiếng Việt)
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hum = char:WaitForChild("Humanoid")
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "TrongNhanGUI"
+gui.Parent = player.PlayerGui
+
+local toggleBtn = Instance.new("ImageButton")
+toggleBtn.Size = UDim2.new(0, 45, 0, 45)
+toggleBtn.Position = UDim2.new(0.02, 0, 0.15, 0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(0,0,0)
+toggleBtn.BorderSizePixels = 0
+toggleBtn.Image = "rbxassetid://0"
+toggleBtn.Parent = gui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 380, 0, 550)
+mainFrame.Position = UDim2.new(0.08, 0, 0.08, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(8,8,12)
+mainFrame.BackgroundTransparency = 1
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Visible = false
+mainFrame.Parent = gui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = mainFrame
+
+local moonEffect = Instance.new("ImageLabel")
+moonEffect.Size = UDim2.new(1.5, 0, 1.5, 0)
+moonEffect.Position = UDim2.new(-0.25, 0, -0.25, 0)
+moonEffect.BackgroundTransparency = 1
+moonEffect.Image = "rbxassetid://5695759139"
+moonEffect.ImageColor3 = Color3.fromRGB(180,180,255)
+moonEffect.Transparency = 0.25
+moonEffect.Parent = mainFrame
+
+local glow = Instance.new("ImageLabel")
+glow.Size = UDim2.new(1, 0, 1, 0)
+glow.Position = UDim2.new(0, 0, 0, 0)
+glow.BackgroundTransparency = 1
+glow.Image = "rbxassetid://10912615776"
+glow.ImageColor3 = Color3.fromRGB(100,100,255)
+glow.Transparency = 0.4
+glow.Parent = mainFrame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 45)
+title.Position = UDim2.new(0, 0, 0, 8)
+title.Text = "script TrongNhan"
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.TextScaled = true
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.Parent = mainFrame
+
+local speedFrame = Instance.new("Frame")
+speedFrame.Size = UDim2.new(0.92, 0, 0, 70)
+speedFrame.Position = UDim2.new(0.04, 0, 0.12, 0)
+speedFrame.BackgroundColor3 = Color3.fromRGB(25,25,35)
+speedFrame.BackgroundTransparency = 0.3
+speedFrame.Parent = mainFrame
+
+local speedLbl = Instance.new("TextLabel")
+speedLbl.Size = UDim2.new(0.6, 0, 0, 22)
+speedLbl.Position = UDim2.new(0.03, 0, 0, 3)
+speedLbl.Text = "⚡ Tốc Độ: x2"
+speedLbl.TextColor3 = Color3.fromRGB(255,255,255)
+speedLbl.BackgroundTransparency = 1
+speedLbl.TextXAlignment = Enum.TextXAlignment.Left
+speedLbl.Font = Enum.Font.GothamMedium
+speedLbl.Parent = speedFrame
+
+local speedSlider = Instance.new("ScrollingFrame")
+speedSlider.Size = UDim2.new(0.7, 0, 0, 22)
+speedSlider.Position = UDim2.new(0.03, 0, 0, 32)
+speedSlider.BackgroundColor3 = Color3.fromRGB(50,50,70)
+speedSlider.ScrollBarThickness = 6
+speedSlider.Parent = speedFrame
+
+local speedBar = Instance.new("Frame")
+speedBar.Size = UDim2.new(1, 0, 1, 0)
+speedBar.BackgroundColor3 = Color3.fromRGB(100,150,255)
+speedBar.Parent = speedSlider
+
+local speedVal = Instance.new("TextLabel")
+speedVal.Size = UDim2.new(0, 30, 0, 22)
+speedVal.Position = UDim2.new(0.7, 0, 0, 32)
+speedVal.Text = "32"
+speedVal.TextColor3 = Color3.fromRGB(255,255,255)
+speedVal.BackgroundTransparency = 1
+speedVal.Parent = speedFrame
+
+local speedOnBtn = Instance.new("TextButton")
+speedOnBtn.Size = UDim2.new(0.2, 0, 0, 28)
+speedOnBtn.Position = UDim2.new(0.76, 0, 0, 34)
+speedOnBtn.Text = "BẬT"
+speedOnBtn.TextColor3 = Color3.fromRGB(0,255,0)
+speedOnBtn.BackgroundColor3 = Color3.fromRGB(35,35,50)
+speedOnBtn.Parent = speedFrame
+
+local jumpFrame = Instance.new("Frame")
+jumpFrame.Size = UDim2.new(0.92, 0, 0, 60)
+jumpFrame.Position = UDim2.new(0.04, 0, 0.28, 0)
+jumpFrame.BackgroundColor3 = Color3.fromRGB(25,25,35)
+jumpFrame.BackgroundTransparency = 0.3
+jumpFrame.Parent = mainFrame
+
+local jumpLbl = Instance.new("TextLabel")
+jumpLbl.Size = UDim2.new(0.6, 0, 0, 22)
+jumpLbl.Position = UDim2.new(0.03, 0, 0, 3)
+jumpLbl.Text = "🦘 Nhảy Cao: 50"
+jumpLbl.TextColor3 = Color3.fromRGB(255,255,255)
+jumpLbl.BackgroundTransparency = 1
+jumpLbl.TextXAlignment = Enum.TextXAlignment.Left
+jumpLbl.Font = Enum.Font.GothamMedium
+jumpLbl.Parent = jumpFrame
+
+local jumpSlider = Instance.new("ScrollingFrame")
+jumpSlider.Size = UDim2.new(0.7, 0, 0, 22)
+jumpSlider.Position = UDim2.new(0.03, 0, 0, 28)
+jumpSlider.BackgroundColor3 = Color3.fromRGB(50,50,70)
+jumpSlider.ScrollBarThickness = 6
+jumpSlider.Parent = jumpFrame
+
+local jumpBar = Instance.new("Frame")
+jumpBar.Size = UDim2.new(1, 0, 1, 0)
+jumpBar.BackgroundColor3 = Color3.fromRGB(255,150,100)
+jumpBar.Parent = jumpSlider
+
+local jumpVal = Instance.new("TextLabel")
+jumpVal.Size = UDim2.new(0, 30, 0, 22)
+jumpVal.Position = UDim2.new(0.7, 0, 0, 28)
+jumpVal.Text = "50"
+jumpVal.TextColor3 = Color3.fromRGB(255,255,255)
+jumpVal.BackgroundTransparency = 1
+jumpVal.Parent = jumpFrame
+
+local invisFrame = Instance.new("Frame")
+invisFrame.Size = UDim2.new(0.92, 0, 0, 50)
+invisFrame.Position = UDim2.new(0.04, 0, 0.42, 0)
+invisFrame.BackgroundColor3 = Color3.fromRGB(25,25,35)
+invisFrame.BackgroundTransparency = 0.3
+invisFrame.Parent = mainFrame
+
+local invisLbl = Instance.new("TextLabel")
+invisLbl.Size = UDim2.new(0.5, 0, 0, 22)
+invisLbl.Position = UDim2.new(0.03, 0, 0, 12)
+invisLbl.Text = "👻 Tàng Hình: TẮT"
+invisLbl.TextColor3 = Color3.fromRGB(255,255,255)
+invisLbl.BackgroundTransparency = 1
+invisLbl.TextXAlignment = Enum.TextXAlignment.Left
+invisLbl.Font = Enum.Font.GothamMedium
+invisLbl.Parent = invisFrame
+
+local invisBtn = Instance.new("TextButton")
+invisBtn.Size = UDim2.new(0.2, 0, 0, 28)
+invisBtn.Position = UDim2.new(0.76, 0, 0, 12)
+invisBtn.Text = "TẮT"
+invisBtn.TextColor3 = Color3.fromRGB(255,0,0)
+invisBtn.BackgroundColor3 = Color3.fromRGB(35,35,50)
+invisBtn.Parent = invisFrame
+
+local deleteBtn = Instance.new("TextButton")
+deleteBtn.Size = UDim2.new(0.4, 0, 0, 35)
+deleteBtn.Position = UDim2.new(0.3, 0, 0.55, 0)
+deleteBtn.Text = "🗑 Xoá Script"
+deleteBtn.TextColor3 = Color3.fromRGB(255,80,80)
+deleteBtn.BackgroundColor3 = Color3.fromRGB(40,0,0)
+deleteBtn.Parent = mainFrame
+
+local confirmFrame = Instance.new("Frame")
+confirmFrame.Size = UDim2.new(0.7, 0, 0, 80)
+confirmFrame.Position = UDim2.new(0.15, 0, 0.68, 0)
+confirmFrame.BackgroundColor3 = Color3.fromRGB(15,15,20)
+confirmFrame.Visible = false
+confirmFrame.Parent = mainFrame
+
+local confirmLbl = Instance.new("TextLabel")
+confirmLbl.Size = UDim2.new(1, 0, 0, 30)
+confirmLbl.Position = UDim2.new(0, 0, 0, 5)
+confirmLbl.Text = "Xoá script vĩnh viễn?"
+confirmLbl.TextColor3 = Color3.fromRGB(255,255,255)
+confirmLbl.BackgroundTransparency = 1
+confirmLbl.Font = Enum.Font.GothamMedium
+confirmLbl.Parent = confirmFrame
+
+local yesBtn = Instance.new("TextButton")
+yesBtn.Size = UDim2.new(0.3, 0, 0, 30)
+yesBtn.Position = UDim2.new(0.08, 0, 0.5, 0)
+yesBtn.Text = "XOÁ"
+yesBtn.TextColor3 = Color3.fromRGB(255,0,0)
+yesBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+yesBtn.Parent = confirmFrame
+
+local noBtn = Instance.new("TextButton")
+noBtn.Size = UDim2.new(0.3, 0, 0, 30)
+noBtn.Position = UDim2.new(0.6, 0, 0.5, 0)
+noBtn.Text = "GIỮ"
+noBtn.TextColor3 = Color3.fromRGB(0,255,0)
+noBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+noBtn.Parent = confirmFrame
+
+local speedOn = true
+local invisOn = false
+local speedValue = 32
+local jumpValue = 50
+
+spawn(function()
+    while wait(0.03) do
+        if mainFrame.Visible then
+            moonEffect.Rotation = (moonEffect.Rotation or 0) + 0.5
+            moonEffect.ImageColor3 = Color3.fromRGB(
+                160 + math.sin(tick() * 0.8) * 40,
+                160 + math.cos(tick() * 0.6) * 40,
+                255
+            )
+            glow.Rotation = (glow.Rotation or 0) + 0.2
+        end
+    end
+end)
+
+toggleBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+    mainFrame.BackgroundTransparency = 0
+end)
+
+speedSlider:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
+    local pos = speedSlider.CanvasPosition.X / speedSlider.AbsoluteSize.X
+    speedValue = math.floor(pos * 700)
+    speedValue = math.clamp(speedValue, 0, 700)
+    speedVal.Text = tostring(speedValue)
+    local x = math.floor(speedValue / 16 + 0.5)
+    speedLbl.Text = "⚡ Tốc Độ: x" .. x
+    if speedOn and hum then
+        hum.WalkSpeed = speedValue
+    end
+    speedBar.Size = UDim2.new(pos, 0, 1, 0)
+end)
+
+speedOnBtn.MouseButton1Click:Connect(function()
+    speedOn = not speedOn
+    speedOnBtn.Text = speedOn and "BẬT" or "TẮT"
+    speedOnBtn.TextColor3 = speedOn and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,0,0)
+    if not speedOn and hum then
+        hum.WalkSpeed = 16
+    elseif speedOn and hum then
+        hum.WalkSpeed = speedValue
+    end
+end)
+
+jumpSlider:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
+    local pos = jumpSlider.CanvasPosition.X / jumpSlider.AbsoluteSize.X
+    jumpValue = math.floor(pos * 270 + 30)
+    jumpValue = math.clamp(jumpValue, 30, 300)
+    jumpVal.Text = tostring(jumpValue)
+    jumpLbl.Text = "🦘 Nhảy Cao: " .. jumpValue
+    if hum then
+        hum.JumpPower = jumpValue
+    end
+    jumpBar.Size = UDim2.new(pos, 0, 1, 0)
+end)
+
+invisBtn.MouseButton1Click:Connect(function()
+    invisOn = not invisOn
+    invisBtn.Text = invisOn and "BẬT" or "TẮT"
+    invisBtn.TextColor3 = invisOn and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,0,0)
+    invisLbl.Text = "👻 Tàng Hình: " .. (invisOn and "BẬT" or "TẮT")
+    if char then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Transparency = invisOn and 1 or 0
+            end
+        end
+    end
+end)
+
+deleteBtn.MouseButton1Click:Connect(function()
+    confirmFrame.Visible = true
+end)
+
+yesBtn.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
+
+noBtn.MouseButton1Click:Connect(function()
+    confirmFrame.Visible = false
+end)
+
+player.CharacterAdded:Connect(function(newChar)
+    char = newChar
+    hum = char:WaitForChild("Humanoid")
+    wait(0.3)
+    if speedOn then
+        hum.WalkSpeed = speedValue
+    end
+    hum.JumpPower = jumpValue
+    if invisOn then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 1
+            end
+        end
+    end
+end)
