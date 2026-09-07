@@ -1,0 +1,447 @@
+-- ==========================================
+-- SCRIPT MENU ROBLOX MOBILE - TIẾNG VIỆT
+-- ==========================================
+
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+-- Biến Trạng Thái
+local Config = {
+    ESP = false,
+    ItemESP = false,
+    Speed = 1,
+    Jump = 1,
+    Fly = false,
+    Invisible = false,
+    GodMode = false,
+    Aimbot = false,
+    FOVSize = 100,
+    Wallhack = false,
+    Teleport = false,
+    GhostMode = false
+}
+
+local FlySpeed = 50
+local FlyBodyVel, FlyBodyGyro
+local FOVCircle
+local DrawingCache = {}
+local TouchedConnection
+
+-- Kiểm tra Drawing API
+local HasDrawing = pcall(function() return Drawing.new("Circle") end)
+
+-- UI Setup
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "VNMobileMenu"
+ScreenGui.ResetOnSpawn = false
+pcall(function()
+    ScreenGui.Parent = CoreGui
+end)
+if not ScreenGui.Parent then
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- Nút Tròn Thả Nổi (Floating Button)
+local FloatButton = Instance.new("TextButton")
+FloatButton.Size = UDim2.new(0, 50, 0, 50)
+FloatButton.Position = UDim2.new(0.05, 0, 0.2, 0)
+FloatButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+FloatButton.Text = "MENU"
+FloatButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+FloatButton.Font = Enum.Font.SourceSansBold
+FloatButton.TextSize = 14
+FloatButton.Parent = ScreenGui
+
+local UICornerBtn = Instance.new("UICorner")
+UICornerBtn.CornerRadius = UDim.new(1, 0)
+UICornerBtn.Parent = FloatButton
+
+local UIStrokeBtn = Instance.new("UIStroke")
+UIStrokeBtn.Color = Color3.fromRGB(0, 170, 255)
+UIStrokeBtn.Thickness = 2
+UIStrokeBtn.Parent = FloatButton
+
+-- Khung Menu Chính
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 320, 0, 380)
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -190)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.Visible = false
+MainFrame.Parent = ScreenGui
+
+local UICornerMenu = Instance.new("UICorner")
+UICornerMenu.CornerRadius = UDim.new(0, 10)
+UICornerMenu.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+Title.Text = "MENU CHỨC NĂNG (MOBILE)"
+Title.TextColor3 = Color3.fromRGB(0, 170, 255)
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 16
+Title.Parent = MainFrame
+
+local UICornerTitle = Instance.new("UICorner")
+UICornerTitle.CornerRadius = UDim.new(0, 10)
+UICornerTitle.Parent = Title
+
+local Scroll = Instance.new("ScrollingFrame")
+Scroll.Size = UDim2.new(1, -20, 1, -50)
+Scroll.Position = UDim2.new(0, 10, 0, 45)
+Scroll.BackgroundTransparency = 1
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 750)
+Scroll.ScrollBarThickness = 4
+Scroll.Parent = MainFrame
+
+local UIList = Instance.new("UIListLayout")
+UIList.Padding = UDim.new(0, 6)
+UIList.Parent = Scroll
+
+-- Kéo Thả Nút Floating
+local Dragging = false
+local DragInput, DragStart, StartPos
+
+FloatButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        Dragging = true
+        DragStart = input.Position
+        StartPos = FloatButton.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                Dragging = false
+            end
+        end)
+    end
+end)
+
+FloatButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        DragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == DragInput and Dragging then
+        local Delta = input.Position - DragStart
+        FloatButton.Position = UDim2.new(StartPos.X.Scale, StartPos.X.Offset + Delta.X, StartPos.Y.Scale, StartPos.Y.Offset + Delta.Y)
+    end
+end)
+
+-- Bật / Ẩn Menu
+FloatButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+-- Tạo UI Controls
+local function CreateToggle(name, callback)
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(1, 0, 0, 35)
+    Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    Btn.Text = name .. ": TẮT"
+    Btn.TextColor3 = Color3.fromRGB(255, 85, 85)
+    Btn.Font = Enum.Font.SourceSans
+    Btn.TextSize = 14
+    Btn.Parent = Scroll
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Btn
+
+    local State = false
+    Btn.MouseButton1Click:Connect(function()
+        State = not State
+        Btn.Text = name .. ": " .. (State and "BẬT" or "TẮT")
+        Btn.TextColor3 = State and Color3.fromRGB(85, 255, 85) or Color3.fromRGB(255, 85, 85)
+        callback(State)
+    end)
+    return Btn
+end
+
+local function CreateSlider(name, min, max, default, callback)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, 0, 0, 45)
+    Frame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    Frame.Parent = Scroll
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Frame
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, 0, 0, 20)
+    Label.BackgroundTransparency = 1
+    Label.Text = name .. ": " .. tostring(default)
+    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Label.Font = Enum.Font.SourceSans
+    Label.TextSize = 14
+    Label.Parent = Frame
+
+    local SliderBtn = Instance.new("TextButton")
+    SliderBtn.Size = UDim2.new(0.9, 0, 0, 15)
+    SliderBtn.Position = UDim2.new(0.05, 0, 0.55, 0)
+    SliderBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    SliderBtn.Text = ""
+    SliderBtn.Parent = Frame
+
+    local Fill = Instance.new("Frame")
+    Fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    Fill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    Fill.BorderSizePixel = 0
+    Fill.Parent = SliderBtn
+
+    local Active = false
+    local function Update(input)
+        local Pos = math.clamp((input.Position.X - SliderBtn.AbsolutePosition.X) / SliderBtn.AbsoluteSize.X, 0, 1)
+        Fill.Size = UDim2.new(Pos, 0, 1, 0)
+        local Val = math.floor(min + (max - min) * Pos)
+        Label.Text = name .. ": " .. tostring(Val)
+        callback(Val)
+    end
+
+    SliderBtn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            Active = true
+            Update(input)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            Active = false
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if Active and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            Update(input)
+        end
+    end)
+end
+
+-- FOV Circle
+if HasDrawing then
+    FOVCircle = Drawing.new("Circle")
+    FOVCircle.Thickness = 1.5
+    FOVCircle.Color = Color3.fromRGB(255, 0, 0)
+    FOVCircle.Filled = false
+    FOVCircle.Transparency = 0.8
+    FOVCircle.NumSides = 30
+    FOVCircle.Visible = false
+end
+
+-- UI Control Elements
+local Toggles = {}
+
+Toggles.ESP = CreateToggle("2. Định vị người chơi (ESP)", function(v) Config.ESP = v end)
+Toggles.ItemESP = CreateToggle("3. Định vị đồ vật (Item ESP)", function(v) Config.ItemESP = v end)
+CreateSlider("4. Tốc độ (Speed)", 1, 100, 1, function(v) Config.Speed = v end)
+CreateSlider("5. Nhảy cao (Super Jump)", 1, 100, 1, function(v) Config.Jump = v end)
+Toggles.Fly = CreateToggle("6. Bay (Fly)", function(v) Config.Fly = v end)
+Toggles.Invisible = CreateToggle("7. Tàng hình (Invisible)", function(v) Config.Invisible = v end)
+Toggles.GodMode = CreateToggle("8. Bất tử (God Mode)", function(v) Config.GodMode = v end)
+Toggles.Aimbot = CreateToggle("9. Tự ngắm (Aimbot)", function(v) 
+    Config.Aimbot = v 
+    if FOVCircle then FOVCircle.Visible = v end
+end)
+CreateSlider("10. Vòng tròn ngắm (FOV)", 50, 880, 100, function(v) Config.FOVSize = v end)
+Toggles.Wallhack = CreateToggle("11. Xuyên tường (Wallhack)", function(v) Config.Wallhack = v end)
+Toggles.Teleport = CreateToggle("12. Dịch chuyển (Teleport Touch)", function(v) Config.Teleport = v end)
+Toggles.GhostMode = CreateToggle("13. Biến mất (Ghost Mode)", function(v) Config.GhostMode = v end)
+
+-- 14. Fix Lag
+local FixLagBtn = Instance.new("TextButton")
+FixLagBtn.Size = UDim2.new(1, 0, 0, 35)
+FixLagBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+FixLagBtn.Text = "14. Chống giật lag (Fix Lag)"
+FixLagBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FixLagBtn.Font = Enum.Font.SourceSans
+FixLagBtn.TextSize = 14
+FixLagBtn.Parent = Scroll
+local UICornerFL = Instance.new("UICorner")
+UICornerFL.CornerRadius = UDim.new(0, 6)
+UICornerFL.Parent = FixLagBtn
+
+FixLagBtn.MouseButton1Click:Connect(function()
+    Lighting.GlobalShadows = false
+    Lighting.FogEnd = 9e9
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.Material = Enum.Material.SmoothPlastic
+        elseif v:IsA("PostEffect") or v:IsA("ParticleEmitter") or v:IsA("Trail") then
+            v.Enabled = false
+        end
+    end
+end)
+
+-- 15. Reset
+local ResetBtn = Instance.new("TextButton")
+ResetBtn.Size = UDim2.new(1, 0, 0, 35)
+ResetBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+ResetBtn.Text = "15. Đặt lại mặc định (Reset)"
+ResetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ResetBtn.Font = Enum.Font.SourceSansBold
+ResetBtn.TextSize = 14
+ResetBtn.Parent = Scroll
+local UICornerRS = Instance.new("UICorner")
+UICornerRS.CornerRadius = UDim.new(0, 6)
+UICornerRS.Parent = ResetBtn
+
+ResetBtn.MouseButton1Click:Connect(function()
+    for _, v in pairs(Config) do
+        if typeof(v) == "boolean" then v = false end
+    end
+    Config.Speed = 1
+    Config.Jump = 1
+    Config.FOVSize = 100
+    if FOVCircle then FOVCircle.Visible = false end
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = 16
+        LocalPlayer.Character.Humanoid.JumpPower = 50
+    end
+end)
+
+-- Loop Xử Lý Chức Năng Main
+RunService.RenderStepped:Connect(function()
+    local Char = LocalPlayer.Character
+    if not Char then return end
+    local Hum = Char:FindFirstChildOfClass("Humanoid")
+    local HRP = Char:FindFirstChild("HumanoidRootPart")
+
+    -- 4. Speed & 5. Jump
+    if Hum then
+        Hum.WalkSpeed = 16 + (Config.Speed - 1) * 1.5
+        Hum.JumpPower = 50 + (Config.Jump - 1) * 3
+    end
+
+    -- 6. Fly
+    if Config.Fly and HRP then
+        if not FlyBodyVel then
+            FlyBodyVel = Instance.new("BodyVelocity")
+            FlyBodyVel.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+            FlyBodyVel.Parent = HRP
+            FlyBodyGyro = Instance.new("BodyGyro")
+            FlyBodyGyro.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+            FlyBodyGyro.Parent = HRP
+        end
+        FlyBodyGyro.CFrame = Camera.CFrame
+        FlyBodyVel.Velocity = Camera.CFrame.LookVector * FlySpeed
+    else
+        if FlyBodyVel then FlyBodyVel:Destroy() FlyBodyVel = nil end
+        if FlyBodyGyro then FlyBodyGyro:Destroy() FlyBodyGyro = nil end
+    end
+
+    -- 7. Tàng hình
+    if Char then
+        for _, p in pairs(Char:GetChildren()) do
+            if p:IsA("BasePart") then
+                p.LocalTransparencyModifier = Config.Invisible and 1 or 0
+            end
+        end
+    end
+
+    -- 8. Bất tử
+    if Config.GodMode and Hum then
+        Hum.Health = Hum.MaxHealth
+    end
+
+    -- 10. FOV Update
+    if FOVCircle then
+        FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+        FOVCircle.Radius = Config.FOVSize
+    end
+
+    -- 9. Aimbot
+    if Config.Aimbot and HRP then
+        local Closest = nil
+        local ShortestDist = Config.FOVSize
+        local Center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local Pos, OnScreen = Camera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
+                if OnScreen then
+                    local Dist = (Vector2.new(Pos.X, Pos.Y) - Center).Magnitude
+                    if Dist < ShortestDist then
+                        ShortestDist = Dist
+                        Closest = plr.Character.HumanoidRootPart
+                    end
+                end
+            end
+        end
+        if Closest then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, Closest.Position)
+        end
+    end
+
+    -- 11. Wallhack / Noclip
+    if Config.Wallhack and Char then
+        for _, p in pairs(Char:GetDescendants()) do
+            if p:IsA("BasePart") then
+                p.CanCollide = false
+            end
+        end
+    end
+
+    -- 13. Ghost Mode
+    if Config.GhostMode and Char then
+        for _, p in pairs(Char:GetChildren()) do
+            if p:IsA("BasePart") then p.Transparency = 1 end
+        end
+        LocalPlayer.CameraMode = Enum.CameraMode.Classic
+    end
+end)
+
+-- 12. Dịch chuyển khi bấm màn hình
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if Config.Teleport and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1) then
+        local UnitRay = Camera:ScreenPointToRay(input.Position.X, input.Position.Y)
+        local RayResult = Workspace:Raycast(UnitRay.Origin, UnitRay.Direction * 1000)
+        if RayResult and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(RayResult.Position + Vector3.new(0, 3, 0))
+        end
+    end
+end)
+
+-- 2. ESP Player & 3. Item ESP (Highlight-based Support Universal Mobile)
+local HighlightGroup = Instance.new("Folder")
+HighlightGroup.Name = "ESPHighlights"
+HighlightGroup.Parent = CoreGui
+
+RunService.RenderStepped:Connect(function()
+    HighlightGroup:ClearAllChildren()
+
+    if Config.ESP then
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local Hl = Instance.new("Highlight")
+                Hl.Adornee = plr.Character
+                Hl.FillColor = Color3.fromRGB(255, 0, 0)
+                Hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                Hl.Parent = HighlightGroup
+            end
+        end
+    end
+
+    if Config.ItemESP then
+        for _, item in pairs(Workspace:GetDescendants()) do
+            if item:IsA("Tool") or item:IsA("TouchTransmitter") then
+                local Target = item:IsA("Tool") and item or item.Parent
+                if Target and Target:IsA("BasePart") or Target:IsA("Model") then
+                    local Hl = Instance.new("Highlight")
+                    Hl.Adornee = Target
+                    Hl.FillColor = Color3.fromRGB(255, 255, 0)
+                    Hl.OutlineColor = Color3.fromRGB(0, 255, 0)
+                    Hl.Parent = HighlightGroup
+                end
+            end
+        end
+    end
+end)
