@@ -1,0 +1,146 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+local ESP_Enabled = true
+local ESP_Cache = {}
+
+-- Tạo UI Toggle cho Mobile & PC
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ESPToggleGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "ESPToggleButton"
+toggleButton.Size = UDim2.new(0, 80, 0, 35)
+toggleButton.Position = UDim2.new(1, -90, 0, 10)
+toggleButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+toggleButton.BackgroundTransparency = 0.3
+toggleButton.Text = "ESP"
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.TextSize = 16
+toggleButton.Font = Enum.Font.SourceSansBold
+toggleButton.Parent = screenGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 8)
+uiCorner.Parent = toggleButton
+
+toggleButton.MouseButton1Click:Connect(function()
+	ESP_Enabled = not ESP_Enabled
+	if ESP_Enabled then
+		toggleButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+	else
+		toggleButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+	end
+end)
+
+local function createESP(player)
+	if player == LocalPlayer then return end
+
+	local box = Drawing.new("Square")
+	box.Thickness = 1.5
+	box.Filled = false
+	box.Color = Color3.fromRGB(255, 0, 0)
+	box.Visible = false
+
+	local label = Drawing.new("Text")
+	label.Size = 14
+	label.Center = true
+	label.Outline = true
+	label.Color = Color3.fromRGB(255, 255, 255)
+	label.Visible = false
+
+	local line = Drawing.new("Line")
+	line.Thickness = 1
+	line.Color = Color3.fromRGB(255, 255, 0)
+	line.Visible = false
+
+	ESP_Cache[player] = {
+		Box = box,
+		Label = label,
+		Line = line
+	}
+end
+
+local function removeESP(player)
+	if ESP_Cache[player] then
+		ESP_Cache[player].Box:Remove()
+		ESP_Cache[player].Label:Remove()
+		ESP_Cache[player].Line:Remove()
+		ESP_Cache[player] = nil
+	end
+end
+
+local function hideESP(data)
+	data.Box.Visible = false
+	data.Label.Visible = false
+	data.Line.Visible = false
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+	createESP(player)
+end
+Players.PlayerAdded:Connect(createESP)
+Players.PlayerRemoving:Connect(removeESP)
+
+local renderConnection
+renderConnection = RunService.RenderStepped:Connect(function()
+	local viewportSize = Camera.ViewportSize
+	local screenCenter = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+
+	for player, data in pairs(ESP_Cache) do
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		local hrp = character and character:FindFirstChild("HumanoidRootPart")
+
+		if ESP_Enabled and character and humanoid and hrp and humanoid.Health > 0 then
+			local hrpPos = hrp.Position
+			local headPos = hrpPos + Vector3.new(0, 3, 0)
+			local feetPos = hrpPos - Vector3.new(0, 3.5, 0)
+
+			local screenPos, onScreen = Camera:WorldToViewportPoint(hrpPos)
+			local headScreenPos = Camera:WorldToViewportPoint(headPos)
+			local feetScreenPos = Camera:WorldToViewportPoint(feetPos)
+
+			if onScreen then
+				local boxHeight = math.abs(headScreenPos.Y - feetScreenPos.Y)
+				local boxWidth = boxHeight * 0.6
+				local boxPos = Vector2.new(screenPos.X - boxWidth / 2, headScreenPos.Y)
+
+				data.Box.Size = Vector2.new(boxWidth, boxHeight)
+				data.Box.Position = boxPos
+				data.Box.Visible = true
+
+				local distance = math.floor((Camera.CFrame.Position - hrpPos).Magnitude)
+				data.Label.Text = string.format("%s [%dm]", player.Name, distance)
+				data.Label.Position = Vector2.new(screenPos.X, boxPos.Y - 18)
+				data.Label.Visible = true
+
+				data.Line.From = screenCenter
+				data.Line.To = Vector2.new(screenPos.X, screenPos.Y)
+				data.Line.Visible = true
+			else
+				hideESP(data)
+			end
+		else
+			hideESP(data)
+		end
+	end
+end)
+
+script.Destroying:Connect(function()
+	if renderConnection then
+		renderConnection:Disconnect()
+	end
+	for player, _ in pairs(ESP_Cache) do
+		removeESP(player)
+	end
+	if screenGui then
+		screenGui:Destroy()
+	end
+end)
