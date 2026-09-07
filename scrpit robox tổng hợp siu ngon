@@ -1,0 +1,495 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local Workspace = game:GetService("Workspace")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+local Features = {
+    ESPBox = false,
+    ESPName = false,
+    ESPDist = false,
+    ESPHealth = false,
+    ESPLine = false,
+    ESPWall = false,
+    Speed = 16,
+    Jump = 50,
+    Fly = false,
+    FlySpeed = 50,
+    Invisible = false,
+    GodMode = false,
+    Aimbot = false,
+    AimbotRadius = 100
+}
+
+local DrawingObjects = {
+    FOV = nil,
+    ESP = {}
+}
+
+if Drawing then
+    local fov = Drawing.new("Circle")
+    fov.Thickness = 1.5
+    fov.Color = Color3.fromRGB(255, 0, 0)
+    fov.Filled = false
+    fov.Transparency = 1
+    fov.NumSides = 60
+    fov.Visible = false
+    DrawingObjects.FOV = fov
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TiengVietMenuMobile"
+ScreenGui.ResetOnSpawn = false
+
+if syn and syn.protect_gui then
+    syn.protect_gui(ScreenGui)
+    ScreenGui.Parent = CoreGui
+elseif gethui then
+    ScreenGui.Parent = gethui()
+else
+    ScreenGui.Parent = CoreGui
+end
+
+local FloatBtn = Instance.new("TextButton")
+FloatBtn.Name = "FloatButton"
+FloatBtn.Size = UDim2.new(0, 50, 0, 50)
+FloatBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
+FloatBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+FloatBtn.TextColor3 = Color3.fromRGB(0, 255, 127)
+FloatBtn.Text = "MENU"
+FloatBtn.TextSize = 14
+FloatBtn.Font = Enum.Font.SourceSansBold
+FloatBtn.Active = true
+FloatBtn.Draggable = true
+FloatBtn.Parent = ScreenGui
+
+local UICornerBtn = Instance.new("UICorner")
+UICornerBtn.CornerRadius = UDim.new(1, 0)
+UICornerBtn.Parent = FloatBtn
+
+local UIStrokeBtn = Instance.new("UIStroke")
+UIStrokeBtn.Color = Color3.fromRGB(0, 255, 127)
+UIStrokeBtn.Thickness = 2
+UIStrokeBtn.Parent = FloatBtn
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 280, 0, 360)
+MainFrame.Position = UDim2.new(0.5, -140, 0.5, -180)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Visible = false
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local UICornerMain = Instance.new("UICorner")
+UICornerMain.CornerRadius = UDim.new(0, 10)
+UICornerMain.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Title.TextColor3 = Color3.fromRGB(0, 255, 127)
+Title.Text = "MENU TIẾNG VIỆT MOBILE"
+Title.TextSize = 15
+Title.Font = Enum.Font.SourceSansBold
+Title.Parent = MainFrame
+
+local UICornerTitle = Instance.new("UICorner")
+UICornerTitle.CornerRadius = UDim.new(0, 10)
+UICornerTitle.Parent = Title
+
+local Scroll = Instance.new("ScrollingFrame")
+Scroll.Size = UDim2.new(1, -10, 1, -45)
+Scroll.Position = UDim2.new(0, 5, 0, 40)
+Scroll.BackgroundTransparency = 1
+Scroll.BorderSizePixel = 0
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 680)
+Scroll.ScrollBarThickness = 4
+Scroll.Parent = MainFrame
+
+local UIList = Instance.new("UIListLayout")
+UIList.Parent = Scroll
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
+UIList.Padding = UDim.new(0, 6)
+
+FloatBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+local function CreateToggle(name, default, callback)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, 0, 0, 35)
+    Frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    Frame.Parent = Scroll
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Frame
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(0.65, 0, 1, 0)
+    Label.Position = UDim2.new(0, 8, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Label.Text = name
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Font = Enum.Font.SourceSans
+    Label.TextSize = 14
+    Label.Parent = Frame
+
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(0.3, 0, 0.8, 0)
+    Btn.Position = UDim2.new(0.68, 0, 0.1, 0)
+    Btn.Font = Enum.Font.SourceSansBold
+    Btn.TextSize = 12
+    Btn.Parent = Frame
+
+    local BtnCorner = Instance.new("UICorner")
+    BtnCorner.CornerRadius = UDim.new(0, 4)
+    BtnCorner.Parent = Btn
+
+    local state = default
+
+    local function update()
+        if state then
+            Btn.Text = "BẬT"
+            Btn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+            Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        else
+            Btn.Text = "TẮT"
+            Btn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+            Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
+        callback(state)
+    end
+
+    Btn.MouseButton1Click:Connect(function()
+        state = not state
+        update()
+    end)
+
+    update()
+end
+
+local function CreateSlider(name, min, max, default, callback)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, 0, 0, 45)
+    Frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    Frame.Parent = Scroll
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Frame
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -10, 0, 20)
+    Label.Position = UDim2.new(0, 8, 0, 2)
+    Label.BackgroundTransparency = 1
+    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Label.Text = name .. ": " .. tostring(default)
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Font = Enum.Font.SourceSans
+    Label.TextSize = 14
+    Label.Parent = Frame
+
+    local SliderBar = Instance.new("TextButton")
+    SliderBar.Size = UDim2.new(1, -16, 0, 12)
+    SliderBar.Position = UDim2.new(0, 8, 0, 26)
+    SliderBar.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    SliderBar.Text = ""
+    SliderBar.Parent = Frame
+
+    local BarCorner = Instance.new("UICorner")
+    BarCorner.CornerRadius = UDim.new(0, 3)
+    BarCorner.Parent = SliderBar
+
+    local Fill = Instance.new("Frame")
+    Fill.Size = UDim2.new((default - min)/(max - min), 0, 1, 0)
+    Fill.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+    Fill.BorderSizePixel = 0
+    Fill.Parent = SliderBar
+
+    local FillCorner = Instance.new("UICorner")
+    FillCorner.CornerRadius = UDim.new(0, 3)
+    FillCorner.Parent = Fill
+
+    local dragging = false
+
+    local function update(input)
+        local pos = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
+        local value = math.floor(min + (max - min) * pos)
+        Fill.Size = UDim2.new(pos, 0, 1, 0)
+        Label.Text = name .. ": " .. tostring(value)
+        callback(value)
+    end
+
+    SliderBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            update(input)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            update(input)
+        end
+    end)
+end
+
+local function CreateButton(name, callback)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, 0, 0, 35)
+    Frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    Frame.Parent = Scroll
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Frame
+
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(1, 0, 1, 0)
+    Btn.BackgroundTransparency = 1
+    Btn.Font = Enum.Font.SourceSansBold
+    Btn.TextColor3 = Color3.fromRGB(0, 255, 127)
+    Btn.Text = name
+    Btn.TextSize = 14
+    Btn.Parent = Frame
+
+    Btn.MouseButton1Click:Connect(callback)
+end
+
+CreateToggle("Định vị Box", false, function(v) Features.ESPBox = v end)
+CreateToggle("Định vị Tên", false, function(v) Features.ESPName = v end)
+CreateToggle("Định vị Khoảng cách", false, function(v) Features.ESPDist = v end)
+CreateToggle("Định vị Máu", false, function(v) Features.ESPHealth = v end)
+CreateToggle("Định vị Snapline", false, function(v) Features.ESPLine = v end)
+CreateToggle("Định vị Xuyên tường", false, function(v) Features.ESPWall = v end)
+
+CreateSlider("Tốc độ", 16, 150000, 16, function(v) Features.Speed = v end)
+CreateSlider("Nhảy cao", 50, 10000, 50, function(v) Features.Jump = v end)
+
+CreateToggle("Bay", false, function(v) Features.Fly = v end)
+CreateToggle("Tàng hình", false, function(v) Features.Invisible = v end)
+CreateToggle("Bất tử", false, function(v) Features.GodMode = v end)
+
+CreateToggle("Tự ngắm", false, function(v)
+    Features.Aimbot = v
+    if DrawingObjects.FOV then DrawingObjects.FOV.Visible = v end
+end)
+CreateSlider("Vòng tròn ngắm", 50, 880, 100, function(v)
+    Features.AimbotRadius = v
+    if DrawingObjects.FOV then DrawingObjects.FOV.Radius = v end
+end)
+
+CreateButton("Đặt lại", function()
+    Features.Speed = 16
+    Features.Jump = 50
+    Features.Fly = false
+    Features.Invisible = false
+    Features.GodMode = false
+    Features.Aimbot = false
+    Features.ESPBox = false
+    Features.ESPName = false
+    Features.ESPDist = false
+    Features.ESPHealth = false
+    Features.ESPLine = false
+    Features.ESPWall = false
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").Health = 0
+    end
+end)
+
+CreateButton("Fix Lag", function()
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.Material = Enum.Material.SmoothPlastic
+        elseif v:IsA("Decal") or v:IsA("Texture") then
+            v:Destroy()
+        elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Fire") or v:IsA("Smoke") then
+            v.Enabled = false
+        end
+    end
+    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+end)
+
+local function GetClosestPlayer()
+    local target = nil
+    local dist = Features.AimbotRadius
+    local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") and player.Character:FindFirstChildOfClass("Humanoid") then
+            if player.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
+                local head = player.Character.Head
+                local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                if onScreen then
+                    local magnitude = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                    if magnitude < dist then
+                        dist = magnitude
+                        target = head
+                    end
+                end
+            end
+        end
+    end
+    return target
+end
+
+RunService.RenderStepped:Connect(function()
+    if DrawingObjects.FOV then
+        DrawingObjects.FOV.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    end
+
+    if Features.Aimbot then
+        local target = GetClosestPlayer()
+        if target then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+        end
+    end
+
+    local char = LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        local root = char:FindFirstChild("HumanoidRootPart")
+
+        if hum then
+            hum.WalkSpeed = Features.Speed
+            hum.JumpPower = Features.Jump
+
+            if Features.GodMode then
+                hum.Health = hum.MaxHealth
+            end
+        end
+
+        if Features.Invisible then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") or part:IsA("Decal") then
+                    part.Transparency = 1
+                end
+            end
+        end
+
+        if Features.Fly and root then
+            root.Velocity = Camera.CFrame.LookVector * Features.FlySpeed
+        end
+    end
+end)
+
+local function RemoveESP(player)
+    if DrawingObjects.ESP[player] then
+        for _, obj in pairs(DrawingObjects.ESP[player]) do
+            if obj.Remove then obj:Remove() end
+        end
+        DrawingObjects.ESP[player] = nil
+    end
+end
+
+local function CreateESP(player)
+    if not Drawing then return end
+    local box = Drawing.new("Square")
+    box.Thickness = 1
+    box.Color = Color3.fromRGB(255, 0, 0)
+    box.Filled = false
+    box.Visible = false
+
+    local txt = Drawing.new("Text")
+    txt.Size = 14
+    txt.Center = true
+    txt.Outline = true
+    txt.Color = Color3.fromRGB(255, 255, 255)
+    txt.Visible = false
+
+    local line = Drawing.new("Line")
+    line.Thickness = 1
+    line.Color = Color3.fromRGB(255, 0, 0)
+    line.Visible = false
+
+    DrawingObjects.ESP[player] = {Box = box, Text = txt, Line = line}
+end
+
+Players.PlayerRemoving:Connect(RemoveESP)
+
+RunService.RenderStepped:Connect(function()
+    if not Drawing then return end
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            if not DrawingObjects.ESP[player] then
+                CreateESP(player)
+            end
+
+            local esp = DrawingObjects.ESP[player]
+            local char = player.Character
+            if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") then
+                local root = char.HumanoidRootPart
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+
+                if onScreen and hum.Health > 0 then
+                    local dist = (Camera.CFrame.Position - root.Position).Magnitude
+                    local scale = (1 / pos.Z) * 1000
+                    local w = 2 * scale
+                    local h = 3 * scale
+
+                    if Features.ESPBox then
+                        esp.Box.Size = Vector2.new(w, h)
+                        esp.Box.Position = Vector2.new(pos.X - w/2, pos.Y - h/2)
+                        esp.Box.Visible = true
+                    else
+                        esp.Box.Visible = false
+                    end
+
+                    if Features.ESPName or Features.ESPDist or Features.ESPHealth then
+                        local infoStr = ""
+                        if Features.ESPName then infoStr = infoStr .. player.Name .. "\n" end
+                        if Features.ESPDist then infoStr = infoStr .. "[" .. math.floor(dist) .. "m]\n" end
+                        if Features.ESPHealth then infoStr = infoStr .. "Máu: " .. math.floor(hum.Health) end
+                        
+                        esp.Text.Text = infoStr
+                        esp.Text.Position = Vector2.new(pos.X, pos.Y - h/2 - 20)
+                        esp.Text.Visible = true
+                    else
+                        esp.Text.Visible = false
+                    end
+
+                    if Features.ESPLine then
+                        esp.Line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                        esp.Line.To = Vector2.new(pos.X, pos.Y)
+                        esp.Line.Visible = true
+                    else
+                        esp.Line.Visible = false
+                    end
+
+                    if Features.ESPWall then
+                        for _, part in pairs(char:GetChildren()) do
+                            if part:IsA("BasePart") then
+                                part.LocalTransparencyModifier = 0
+                            end
+                        end
+                    end
+                else
+                    esp.Box.Visible = false
+                    esp.Text.Visible = false
+                    esp.Line.Visible = false
+                end
+            else
+                if esp then
+                    esp.Box.Visible = false
+                    esp.Text.Visible = false
+                    esp.Line.Visible = false
+                end
+            end
+        end
+    end
+end)
