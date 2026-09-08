@@ -1,0 +1,563 @@
+-- [[ MENU HL REDUCER - ROBLOX MOBILE SCRIPT ]] --
+-- Dynamic execution with maximum responsiveness and smooth UI
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+-- Global state configuration
+local State = {
+    ESP = false,
+    ItemESP = false,
+    Fly = false,
+    Invisible = false,
+    GodMode = false,
+    Aimbot = false,
+    ShowFOV = false,
+    Wallhack = false,
+    Teleport = false,
+    GhostMode = false,
+    AutoKill = false,
+    AutoFarm = false,
+    FreezeTime = false,
+    Fake404 = false,
+    AntiBan = false,
+    
+    BoxThickness = 2,
+    TextSize = 14,
+    FOVSize = 150,
+    Speed = 16,
+    JumpPower = 50,
+    
+    BoxColor = Color3.fromRGB(255, 0, 0),
+    SnapColor = Color3.fromRGB(255, 255, 0),
+    NameColor = Color3.fromRGB(255, 255, 255)
+}
+
+-- Cleanup Registry
+local DrawCache = {}
+local Connections = {}
+local OriginalTransparencies = {}
+
+local function ClearDrawCache()
+    for _, obj in pairs(DrawCache) do
+        if obj and obj.Remove then
+            obj:Remove()
+        end
+    end
+    DrawCache = {}
+end
+
+-- UI Engine Setup
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "HL_Reducer_GUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = (CoreGui:FindFirstChild("RobloxGui") or CoreGui)
+
+-- Floating Toggle Button
+local FloatBtn = Instance.new("TextButton")
+FloatBtn.Name = "FloatButton"
+FloatBtn.Size = UDim2.new(0, 60, 0, 60)
+FloatBtn.Position = UDim2.new(0, 20, 0.4, 0)
+FloatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+FloatBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+FloatBtn.Text = "HL"
+FloatBtn.TextSize = 22
+FloatBtn.Font = Enum.Font.SourceSansBold
+FloatBtn.Active = true
+FloatBtn.Draggable = true
+FloatBtn.Parent = ScreenGui
+
+local FloatCorner = Instance.new("UICorner")
+FloatCorner.CornerRadius = UDim.new(1, 0)
+FloatCorner.Parent = FloatBtn
+
+local FloatStroke = Instance.new("UIStroke")
+FloatStroke.Color = Color3.fromRGB(255, 50, 50)
+FloatStroke.Thickness = 2
+FloatStroke.Parent = FloatBtn
+
+-- Main Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 320, 0, 420)
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -210)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.BorderSizePixel = 0
+MainFrame.Visible = false
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 10)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(255, 50, 50)
+MainStroke.Thickness = 2
+MainStroke.Parent = MainFrame
+
+-- Header
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Title.Text = "Menu HL Reducer"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 18
+Title.Font = Enum.Font.SourceSansBold
+Title.Parent = MainFrame
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 10)
+TitleCorner.Parent = Title
+
+-- Container
+local Scroll = Instance.new("ScrollingFrame")
+Scroll.Size = UDim2.new(1, -10, 1, -50)
+Scroll.Position = UDim2.new(0, 5, 0, 45)
+Scroll.BackgroundTransparency = 1
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 1450)
+Scroll.ScrollBarThickness = 4
+Scroll.Parent = MainFrame
+
+local UIList = Instance.new("UIListLayout")
+UIList.Padding = UDim.new(0, 6)
+UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIList.Parent = Scroll
+
+-- Toggle Floating Event
+FloatBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+-- Helper Controls Generator
+local function CreateToggle(name, stateKey, callback)
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(0.95, 0, 0, 35)
+    Btn.BackgroundColor3 = State[stateKey] and Color3.fromRGB(0, 150, 75) or Color3.fromRGB(40, 40, 40)
+    Btn.Text = name .. ": " .. (State[stateKey] and "BẬT" or "TẮT")
+    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Btn.TextSize = 14
+    Btn.Font = Enum.Font.SourceSans
+    Btn.Parent = Scroll
+    
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Btn
+    
+    Btn.MouseButton1Click:Connect(function()
+        State[stateKey] = not State[stateKey]
+        Btn.BackgroundColor3 = State[stateKey] and Color3.fromRGB(0, 150, 75) or Color3.fromRGB(40, 40, 40)
+        Btn.Text = name .. ": " .. (State[stateKey] and "BẬT" or "TẮT")
+        if callback then callback(State[stateKey]) end
+    end)
+    return Btn
+end
+
+local function CreateSlider(name, min, max, default, stateKey, callback)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(0.95, 0, 0, 45)
+    Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    Frame.Parent = Scroll
+    
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Frame
+    
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, 0, 0, 20)
+    Label.BackgroundTransparency = 1
+    Label.Text = name .. ": " .. tostring(default)
+    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Label.TextSize = 13
+    Label.Font = Enum.Font.SourceSans
+    Label.Parent = Frame
+    
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(0.9, 0, 0, 15)
+    Btn.Position = UDim2.new(0.05, 0, 0, 22)
+    Btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    Btn.Text = ""
+    Btn.Parent = Frame
+    
+    local Fill = Instance.new("Frame")
+    Fill.Size = UDim2.new((default - min)/(max - min), 0, 1, 0)
+    Fill.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    Fill.BorderSizePixel = 0
+    Fill.Parent = Btn
+    
+    local dragging = false
+    local function Update(input)
+        local pos = math.clamp((input.Position.X - Btn.AbsolutePosition.X) / Btn.AbsoluteSize.X, 0, 1)
+        local val = math.floor(min + (max - min) * pos)
+        Fill.Size = UDim2.new(pos, 0, 1, 0)
+        Label.Text = name .. ": " .. tostring(val)
+        State[stateKey] = val
+        if callback then callback(val) end
+    end
+    
+    Btn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            Update(input)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            Update(input)
+        end
+    end)
+end
+
+-- FOV Circle Definition
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 1.5
+FOVCircle.Color = Color3.fromRGB(255, 255, 255)
+FOVCircle.Filled = false
+FOVCircle.Visible = false
+
+-- FEATURE IMPLEMENTATIONS
+
+-- 2. ESP System
+Connections.ESP = RunService.RenderStepped:Connect(function()
+    ClearDrawCache()
+    
+    if State.ShowFOV then
+        FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+        FOVCircle.Radius = State.FOVSize
+        FOVCircle.Visible = true
+    else
+        FOVCircle.Visible = false
+    end
+    
+    if State.ESP then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") then
+                local hrp = p.Character.HumanoidRootPart
+                local hum = p.Character.Humanoid
+                local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                
+                if onScreen and hum.Health > 0 then
+                    local size = (Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0)).Y - Camera:WorldToViewportPoint(hrp.Position + Vector3.new(0, 2.6, 0)).Y)
+                    local boxSize = Vector2.new(math.abs(size * 0.6), math.abs(size))
+                    local boxPos = Vector2.new(pos.X - boxSize.X / 2, pos.Y - boxSize.Y / 2)
+                    
+                    local Box = Drawing.new("Square")
+                    Box.Size = boxSize
+                    Box.Position = boxPos
+                    Box.Color = State.BoxColor
+                    Box.Thickness = State.BoxThickness
+                    Box.Visible = true
+                    table.insert(DrawCache, Box)
+                    
+                    local Line = Drawing.new("Line")
+                    Line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                    Line.To = Vector2.new(pos.X, pos.Y + boxSize.Y / 2)
+                    Line.Color = State.SnapColor
+                    Line.Thickness = 1
+                    Line.Visible = true
+                    table.insert(DrawCache, Line)
+                    
+                    local Text = Drawing.new("Text")
+                    Text.Text = p.Name .. " [" .. math.floor((hrp.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude) .. "m]"
+                    Text.Size = State.TextSize
+                    Text.Color = State.NameColor
+                    Text.Position = Vector2.new(pos.X, boxPos.Y - Text.Size - 2)
+                    Text.Center = true
+                    Text.Visible = true
+                    table.insert(DrawCache, Text)
+                end
+            end
+        end
+    end
+    
+    -- 3. Item ESP
+    if State.ItemESP then
+        for _, item in pairs(Workspace:GetDescendants()) do
+            if item:IsA("TouchTransmitter") and item.Parent and item.Parent:IsA("BasePart") then
+                local part = item.Parent
+                local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
+                if onScreen then
+                    local Text = Drawing.new("Text")
+                    Text.Text = part.Name
+                    Text.Size = 14
+                    Text.Color = Color3.fromRGB(0, 255, 128)
+                    Text.Position = Vector2.new(pos.X, pos.Y)
+                    Text.Center = true
+                    Text.Visible = true
+                    table.insert(DrawCache, Text)
+                end
+            end
+        end
+    end
+end)
+
+-- 4 & 5. Speed & Jump
+Connections.Movement = RunService.Stepped:Connect(function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        local hum = LocalPlayer.Character.Humanoid
+        hum.WalkSpeed = State.Speed
+        hum.JumpPower = State.JumpPower
+        
+        -- 8. God Mode
+        if State.GodMode then
+            hum.Health = hum.MaxHealth
+        end
+    end
+end)
+
+-- 6. Fly System
+local FlyBodyVel, FlyBodyGyro
+Connections.Fly = RunService.RenderStepped:Connect(function()
+    if State.Fly and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = LocalPlayer.Character.HumanoidRootPart
+        if not FlyBodyVel then
+            FlyBodyVel = Instance.new("BodyVelocity")
+            FlyBodyVel.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+            FlyBodyVel.Parent = hrp
+            FlyBodyGyro = Instance.new("BodyGyro")
+            FlyBodyGyro.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+            FlyBodyGyro.Parent = hrp
+        end
+        FlyBodyGyro.CFrame = Camera.CFrame
+        FlyBodyVel.Velocity = Camera.CFrame.LookVector * (State.Speed * 2)
+    else
+        if FlyBodyVel then FlyBodyVel:Destroy() FlyBodyVel = nil end
+        if FlyBodyGyro then FlyBodyGyro:Destroy() FlyBodyGyro = nil end
+    end
+end)
+
+-- 7. Invisible
+local function SetInvisibility(toggle)
+    if LocalPlayer.Character then
+        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+            if v:IsA("BasePart") or v:IsA("Decal") then
+                if toggle then
+                    if not OriginalTransparencies[v] then
+                        OriginalTransparencies[v] = v.Transparency
+                    end
+                    v.Transparency = 1
+                else
+                    if OriginalTransparencies[v] then
+                        v.Transparency = OriginalTransparencies[v]
+                    else
+                        v.Transparency = 0
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- 9. Aimbot
+Connections.Aimbot = RunService.RenderStepped:Connect(function()
+    if State.Aimbot then
+        local closest, minDist = nil, State.FOVSize
+        local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+        
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+                local pos, onScreen = Camera:WorldToViewportPoint(p.Character.Head.Position)
+                if onScreen then
+                    local dist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                    if dist < minDist then
+                        minDist = dist
+                        closest = p.Character.Head
+                    end
+                end
+            end
+        end
+        if closest then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, closest.Position)
+        end
+    end
+end)
+
+-- 11. Wallhack
+local function SetWallhack(toggle)
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            for _, part in pairs(p.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.LocalTransparencyModifier = toggle and 0.5 or 0
+                end
+            end
+        end
+    end
+end
+
+-- 13. Ghost Mode
+Connections.Ghost = RunService.RenderStepped:Connect(function()
+    if State.GhostMode and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character.HumanoidRootPart.CanCollide = false
+        Camera.CameraType = Enum.CameraType.Scriptable
+    elseif not State.GhostMode then
+        if Camera.CameraType == Enum.CameraType.Scriptable then
+            Camera.CameraType = Enum.CameraType.Custom
+        end
+    end
+end)
+
+-- 14 & 15. Auto Kill / Auto Farm
+Connections.Automation = RunService.Heartbeat:Connect(function()
+    if (State.AutoKill or State.AutoFarm) and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = LocalPlayer.Character.HumanoidRootPart
+        for _, v in pairs(Workspace:GetDescendants()) do
+            if v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") and v ~= LocalPlayer.Character then
+                if v.Humanoid.Health > 0 then
+                    hrp.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                    local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                    if tool then tool:Activate() end
+                    break
+                end
+            end
+        end
+    end
+end)
+
+-- 16. Freeze Time
+local SavedTime
+local function ToggleFreezeTime(toggle)
+    if toggle then
+        SavedTime = Lighting.ClockTime
+        Connections.Freeze = RunService.Stepped:Connect(function()
+            Lighting.ClockTime = SavedTime
+        end)
+    else
+        if Connections.Freeze then
+            Connections.Freeze:Disconnect()
+            Connections.Freeze = nil
+        end
+    end
+end
+
+-- 18. Fake 404 Error
+local Fake404Frame
+local function ToggleFake404(toggle)
+    if toggle then
+        Fake404Frame = Instance.new("Frame")
+        Fake404Frame.Size = UDim2.new(1, 0, 1, 0)
+        Fake404Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        Fake404Frame.ZIndex = 999999
+        Fake404Frame.Parent = ScreenGui
+        
+        local ErrorText = Instance.new("TextLabel")
+        ErrorText.Size = UDim2.new(1, 0, 1, 0)
+        ErrorText.Text = "LỖI 404\nKhông thể kết nối đến máy chủ"
+        ErrorText.TextColor3 = Color3.fromRGB(255, 0, 0)
+        ErrorText.TextSize = 28
+        ErrorText.Font = Enum.Font.SourceSansBold
+        ErrorText.Parent = Fake404Frame
+    else
+        if Fake404Frame then
+            Fake404Frame:Destroy()
+            Fake404Frame = nil
+        end
+    end
+end
+
+-- 19. Fix Lag
+local function ApplyFixLag()
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.Material = Enum.Material.SmoothPlastic
+            v.CastShadow = false
+        elseif v:IsA("Decal") or v:IsA("Texture") then
+            v:Destroy()
+        end
+    end
+    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+end
+
+-- UI ELEMENTS INITIALIZATION
+CreateToggle("Định vị (ESP)", "ESP")
+CreateToggle("Định vị đồ vật (Item ESP)", "ItemESP")
+CreateSlider("Độ dày viền Box", 1, 5, 2, "BoxThickness")
+CreateSlider("Cỡ chữ ESP", 10, 30, 14, "TextSize")
+CreateSlider("Tốc độ (Speed)", 1, 100, 16, "Speed")
+CreateSlider("Nhảy cao (Super Jump)", 1, 100, 50, "JumpPower")
+CreateToggle("Bay (Fly)", "Fly")
+CreateToggle("Tàng hình (Invisible)", "Invisible", SetInvisibility)
+CreateToggle("Bất tử (God Mode)", "GodMode")
+CreateToggle("Tự ngắm (Aimbot)", "Aimbot")
+CreateToggle("Vòng tròn ngắm (FOV)", "ShowFOV")
+CreateSlider("Kích thước FOV", 50, 880, 150, "FOVSize")
+CreateToggle("Xuyên tường (Wallhack)", "Wallhack", SetWallhack)
+
+-- Teleport Feature
+local TeleportBtn = Instance.new("TextButton")
+TeleportBtn.Size = UDim2.new(0.95, 0, 0, 35)
+TeleportBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+TeleportBtn.Text = "Dịch chuyển (Đến người ngẫu nhiên)"
+TeleportBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TeleportBtn.Font = Enum.Font.SourceSans
+TeleportBtn.Parent = Scroll
+local TPCorner = Instance.new("UICorner")
+TPCorner.CornerRadius = UDim.new(0, 6)
+TPCorner.Parent = TeleportBtn
+
+TeleportBtn.MouseButton1Click:Connect(function()
+    local allP = Players:GetPlayers()
+    for _, p in pairs(allP) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame
+            break
+        end
+    end
+end)
+
+CreateToggle("Biến mất (Ghost Mode)", "GhostMode")
+CreateToggle("Tự động tiêu diệt (Auto Kill)", "AutoKill")
+CreateToggle("Tự động farm (Auto Farm)", "AutoFarm")
+CreateToggle("Đóng băng thời gian", "FreezeTime", ToggleFreezeTime)
+
+-- Kick Player Window
+local KickBtn = Instance.new("TextButton")
+KickBtn.Size = UDim2.new(0.95, 0, 0, 35)
+KickBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+KickBtn.Text = "Đá người chơi (Kick Player)"
+KickBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+KickBtn.Font = Enum.Font.SourceSansBold
+KickBtn.Parent = Scroll
+local KickCorner = Instance.new("UICorner")
+KickCorner.CornerRadius = UDim.new(0, 6)
+KickCorner.Parent = KickBtn
+
+KickBtn.MouseButton1Click:Connect(function()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            p:Destroy()
+        end
+    end
+end)
+
+CreateToggle("Troll lỗi 404 (Fake 404)", "Fake404", ToggleFake404)
+
+-- Fix Lag Button
+local FixLagBtn = Instance.new("TextButton")
+FixLagBtn.Size = UDim2.new(0.95, 0, 0, 35)
+FixLagBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+FixLagBtn.Text = "Chống giật lag (Fix Lag)"
+FixLagBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FixLagBtn.Font = Enum.Font.SourceSans
+FixLagBtn.Parent = Scroll
+local FixCorner = Instance.new("UICorner")
+FixCorner.CornerRadius = UDim.new(0, 6)
+FixCorner.Parent = FixLagBtn
+FixLagBtn.MouseButton1Click:Connect(ApplyFixLag)
+
+CreateToggle("Chống cấm (Anti Ban)", "AntiBan")
+
+--
