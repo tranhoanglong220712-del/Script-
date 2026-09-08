@@ -1,0 +1,602 @@
+-- ==========================================
+-- MENU HL REDUCER - SCRIPT HOÀN CHỈNH
+-- ==========================================
+
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextChatService = game:GetService("TextChatService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+-- Cleanup old GUI & Drawing elements
+if getgenv().HL_Cleaner then
+    getgenv().HL_Cleaner()
+end
+
+local Connections = {}
+local DrawingObjects = {}
+local ESPCache = {}
+
+-- State Management
+local State = {
+    ESP = false,
+    ESPColor = Color3.fromRGB(0, 150, 255),
+    Wallhack = false,
+    GodMode = false,
+    Fly = false,
+    Speed = 1,
+    Jump = 1,
+    AutoKill = false,
+    AutoFarm = false,
+    Aimbot = false,
+    FOV = false,
+    FOVRadius = 200,
+    Invisible = false,
+    Teleport = false,
+    GhostMode = false,
+    FreezeTime = false,
+    ChatAll = false,
+    Fake404 = false
+}
+
+-- Drawing API Setup (FOV Circle)
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Visible = false
+FOVCircle.Thickness = 1.5
+FOVCircle.Color = Color3.fromRGB(255, 255, 255)
+FOVCircle.Filled = false
+FOVCircle.Transparency = 0.8
+FOVCircle.NumSides = 60
+table.insert(DrawingObjects, FOVCircle)
+
+-- GUI Construction
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "MenuHLReducer_Gui"
+ScreenGui.ResetOnSpawn = false
+
+pcall(function()
+    if syn and syn.protect_gui then
+        syn.protect_gui(ScreenGui)
+        ScreenGui.Parent = CoreGui
+    elseif gethui then
+        ScreenGui.Parent = gethui()
+    else
+        ScreenGui.Parent = CoreGui
+    end
+end)
+
+if not ScreenGui.Parent then
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- Floating Toggle Button
+local FloatBtn = Instance.new("TextButton")
+FloatBtn.Name = "FloatButton"
+FloatBtn.Size = UDim2.new(0, 50, 0, 50)
+FloatBtn.Position = UDim2.new(1, -70, 0.5, -25)
+FloatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+FloatBtn.BorderColor3 = Color3.fromRGB(255, 255, 255)
+FloatBtn.BorderSizePixel = 2
+FloatBtn.Text = "HL"
+FloatBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FloatBtn.Font = Enum.Font.ArialBold
+FloatBtn.TextSize = 16
+FloatBtn.Active = true
+FloatBtn.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(1, 0)
+UICorner.Parent = FloatBtn
+
+-- Dragging Logic for Floating Button
+local dragging, dragInput, dragStart, startPos
+FloatBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = FloatBtn.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+FloatBtn.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+table.insert(Connections, UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        FloatBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end))
+
+-- Main Menu Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 360, 0, 480)
+MainFrame.Position = UDim2.new(0.5, -180, 0.5, -240)
+MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+MainFrame.BackgroundTransparency = 0.2
+MainFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+MainFrame.BorderSizePixel = 2
+MainFrame.Visible = true
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+FloatBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+-- Title
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size = UDim2.new(1, 0, 0, 40)
+TitleLabel.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+TitleLabel.BackgroundTransparency = 0.2
+TitleLabel.BorderColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.BorderSizePixel = 1
+TitleLabel.Text = "Menu HL Reducer"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.Font = Enum.Font.ArialBold
+TitleLabel.TextSize = 15
+TitleLabel.Parent = MainFrame
+
+-- Scroll Frame
+local Scroll = Instance.new("ScrollingFrame")
+Scroll.Size = UDim2.new(1, -10, 1, -50)
+Scroll.Position = UDim2.new(0, 5, 0, 45)
+Scroll.BackgroundTransparency = 1
+Scroll.BorderSizePixel = 0
+Scroll.ScrollBarThickness = 6
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 1150)
+Scroll.Parent = MainFrame
+
+local UIList = Instance.new("UIListLayout")
+UIList.Parent = Scroll
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
+UIList.Padding = UDim.new(0, 6)
+
+-- Chat Box Frame (Floating)
+local ChatFrame = Instance.new("Frame")
+ChatFrame.Size = UDim2.new(0, 300, 0, 80)
+ChatFrame.Position = UDim2.new(0.5, -150, 0.8, -40)
+ChatFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+ChatFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+ChatFrame.BorderSizePixel = 1
+ChatFrame.Visible = false
+ChatFrame.Parent = ScreenGui
+
+local ChatInput = Instance.new("TextBox")
+ChatInput.Size = UDim2.new(1, -10, 0, 35)
+ChatInput.Position = UDim2.new(0, 5, 0, 5)
+ChatInput.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+ChatInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+ChatInput.PlaceholderText = "Nhập tin nhắn..."
+ChatInput.Font = Enum.Font.ArialBold
+ChatInput.TextSize = 13
+ChatInput.Parent = ChatFrame
+
+local SendBtn = Instance.new("TextButton")
+SendBtn.Size = UDim2.new(0.45, 0, 0, 30)
+SendBtn.Position = UDim2.new(0.04, 0, 0, 45)
+SendBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+SendBtn.Text = "Gửi"
+SendBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SendBtn.Font = Enum.Font.ArialBold
+SendBtn.TextSize = 13
+SendBtn.Parent = ChatFrame
+
+local ClearBtn = Instance.new("TextButton")
+ClearBtn.Size = UDim2.new(0.45, 0, 0, 30)
+ClearBtn.Position = UDim2.new(0.51, 0, 0, 45)
+ClearBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+ClearBtn.Text = "Xóa"
+ClearBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ClearBtn.Font = Enum.Font.ArialBold
+ClearBtn.TextSize = 13
+ClearBtn.Parent = ChatFrame
+
+SendBtn.MouseButton1Click:Connect(function()
+    local msg = ChatInput.Text
+    if msg ~= "" then
+        pcall(function()
+            if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+                TextChatService.TextChannels.RBXGeneral:SendAsync(msg)
+            else
+                ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(msg, "All")
+            end
+        end)
+    end
+end)
+
+ClearBtn.MouseButton1Click:Connect(function()
+    ChatInput.Text = ""
+end)
+
+-- Fake 404 Overlay Frame
+local Fake404Frame = Instance.new("Frame")
+Fake404Frame.Size = UDim2.new(1, 0, 1, 0)
+Fake404Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Fake404Frame.Visible = false
+Fake404Frame.ZIndex = 999999
+Fake404Frame.Parent = ScreenGui
+
+local ErrorText = Instance.new("TextLabel")
+ErrorText.Size = UDim2.new(1, 0, 1, 0)
+ErrorText.BackgroundTransparency = 1
+ErrorText.Text = "404 NOT FOUND\nLỗi kết nối tới máy chủ Roblox."
+ErrorText.TextColor3 = Color3.fromRGB(255, 0, 0)
+ErrorText.Font = Enum.Font.ArialBold
+ErrorText.TextSize = 30
+ErrorText.Parent = Fake404Frame
+
+-- Helper UI Functions
+local function CreateToggle(name, stateKey, callback)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, -10, 0, 38)
+    Frame.BackgroundTransparency = 1
+    Frame.Parent = Scroll
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(0.65, 0, 1, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = " " .. name
+    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Label.Font = Enum.Font.ArialBold
+    Label.TextSize = 13
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Frame
+
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(0.3, 0, 0.8, 0)
+    Btn.Position = UDim2.new(0.68, 0, 0.1, 0)
+    Btn.Font = Enum.Font.ArialBold
+    Btn.TextSize = 13
+    Btn.Parent = Frame
+
+    local function update()
+        local enabled = State[stateKey]
+        Btn.BackgroundColor3 = enabled and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(180, 0, 0)
+        Btn.Text = enabled and "BẬT" or "TẮT"
+        Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end
+
+    Btn.MouseButton1Click:Connect(function()
+        State[stateKey] = not State[stateKey]
+        update()
+        if callback then callback(State[stateKey]) end
+    end)
+
+    update()
+    return Frame, update
+end
+
+local function CreateSlider(name, min, max, default, stateKey, callback)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, -10, 0, 45)
+    Frame.BackgroundTransparency = 1
+    Frame.Parent = Scroll
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, 0, 0, 20)
+    Label.BackgroundTransparency = 1
+    Label.Text = " " .. name .. ": " .. default
+    Label.TextColor3 = Color3.fromRGB(255, 255, 0)
+    Label.Font = Enum.Font.ArialBold
+    Label.TextSize = 13
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Frame
+
+    local SliderBar = Instance.new("TextButton")
+    SliderBar.Size = UDim2.new(0.96, 0, 0, 12)
+    SliderBar.Position = UDim2.new(0.02, 0, 0, 24)
+    SliderBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    SliderBar.Text = ""
+    SliderBar.Parent = Frame
+
+    local Fill = Instance.new("Frame")
+    Fill.Size = UDim2.new((default - min)/(max - min), 0, 1, 0)
+    Fill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    Fill.BorderSizePixel = 0
+    Fill.Parent = SliderBar
+
+    local sliding = false
+    local function setVal(input)
+        local pos = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
+        local val = math.floor(min + pos * (max - min))
+        Fill.Size = UDim2.new(pos, 0, 1, 0)
+        Label.Text = " " .. name .. ": " .. val
+        State[stateKey] = val
+        if callback then callback(val) end
+    end
+
+    SliderBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            sliding = true
+            setVal(input)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            sliding = false
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            setVal(input)
+        end
+    end)
+
+    return Frame
+end
+
+local Toggles = {}
+
+-- Chức năng 1: ESP
+local _, updateESP = CreateToggle("BẬT/TẮT ESP", "ESP")
+Toggles["ESP"] = updateESP
+
+-- ESP Color Switcher
+local ColorFrame = Instance.new("Frame")
+ColorFrame.Size = UDim2.new(1, -10, 0, 35)
+ColorFrame.BackgroundTransparency = 1
+ColorFrame.Parent = Scroll
+
+local ColorLabel = Instance.new("TextLabel")
+ColorLabel.Size = UDim2.new(0.3, 0, 1, 0)
+ColorLabel.BackgroundTransparency = 1
+ColorLabel.Text = " Màu ESP:"
+ColorLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+ColorLabel.Font = Enum.Font.ArialBold
+ColorLabel.TextSize = 13
+ColorLabel.TextXAlignment = Enum.TextXAlignment.Left
+ColorLabel.Parent = ColorFrame
+
+local Colors = {
+    {Color3.fromRGB(255, 0, 0), "Đỏ"},
+    {Color3.fromRGB(0, 150, 255), "Xanh"},
+    {Color3.fromRGB(0, 255, 0), "Lá"},
+    {Color3.fromRGB(255, 255, 0), "Vàng"},
+    {Color3.fromRGB(255, 255, 255), "Trắng"},
+    {Color3.fromRGB(255, 105, 180), "Hồng"}
+}
+
+for i, col in ipairs(Colors) do
+    local cBtn = Instance.new("TextButton")
+    cBtn.Size = UDim2.new(0.1, 0, 0.7, 0)
+    cBtn.Position = UDim2.new(0.3 + (i - 1) * 0.11, 0, 0.15, 0)
+    cBtn.BackgroundColor3 = col[1]
+    cBtn.Text = ""
+    cBtn.Parent = ColorFrame
+    cBtn.MouseButton1Click:Connect(function()
+        State.ESPColor = col[1]
+    end)
+end
+
+-- Chức năng 2-14:
+local _, u2 = CreateToggle("Xuyên Tường (Wallhack)", "Wallhack")
+local _, u3 = CreateToggle("Bất Tử (God Mode)", "GodMode")
+local _, u4 = CreateToggle("Bay (Fly)", "Fly")
+local _, u7 = CreateToggle("Tự Động Tiêu Diệt", "AutoKill")
+local _, u8 = CreateToggle("Tự Động Farm", "AutoFarm")
+local _, u9 = CreateToggle("Tự Ngắm (Aimbot)", "Aimbot")
+local _, u10 = CreateToggle("Vòng Tròn Ngắm (FOV)", "FOV", function(v) FOVCircle.Visible = v end)
+local _, u11 = CreateToggle("Tàng Hình (Invisible)", "Invisible", function(v)
+    if LocalPlayer.Character then
+        for _, p in ipairs(LocalPlayer.Character:GetDescendants()) do
+            if p:IsA("BasePart") or p:IsA("Decal") then
+                p.Transparency = v and 1 or 0
+            end
+        end
+    end
+end)
+local _, u12 = CreateToggle("Dịch Chuyển (Teleport)", "Teleport")
+local _, u13 = CreateToggle("Biến Mất (Ghost Mode)", "GhostMode", function(v)
+    if LocalPlayer.Character then
+        for _, p in ipairs(LocalPlayer.Character:GetDescendants()) do
+            if p:IsA("BasePart") or p:IsA("Decal") then
+                p.Transparency = v and 1 or 0
+            end
+        end
+        Camera.CameraType = v and Enum.CameraType.Scriptable or Enum.CameraType.Custom
+    end
+end)
+local _, u14 = CreateToggle("Đóng Băng Thời Gian", "FreezeTime")
+
+Toggles["Wallhack"] = u2
+Toggles["GodMode"] = u3
+Toggles["Fly"] = u4
+Toggles["AutoKill"] = u7
+Toggles["AutoFarm"] = u8
+Toggles["Aimbot"] = u9
+Toggles["FOV"] = u10
+Toggles["Invisible"] = u11
+Toggles["Teleport"] = u12
+Toggles["GhostMode"] = u13
+Toggles["FreezeTime"] = u14
+
+-- Sliders
+CreateSlider("Tốc Độ", 1, 100, 1, "Speed")
+CreateSlider("Nhảy Cao", 1, 100, 1, "Jump")
+CreateSlider("Bán Kính FOV", 50, 880, 200, "FOVRadius", function(v) FOVCircle.Radius = v end)
+
+-- Chức năng 15: Kick Player Modal
+local KickFrame = Instance.new("Frame")
+KickFrame.Size = UDim2.new(1, -10, 0, 120)
+KickFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+KickFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+KickFrame.Parent = Scroll
+
+local KickTitle = Instance.new("TextLabel")
+KickTitle.Size = UDim2.new(1, 0, 0, 20)
+KickTitle.BackgroundTransparency = 1
+KickTitle.Text = "Đá Người Chơi (Kick)"
+KickTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+KickTitle.Font = Enum.Font.ArialBold
+KickTitle.TextSize = 13
+KickTitle.Parent = KickFrame
+
+local KickScroll = Instance.new("ScrollingFrame")
+KickScroll.Size = UDim2.new(1, -10, 0, 65)
+KickScroll.Position = UDim2.new(0, 5, 0, 22)
+KickScroll.BackgroundTransparency = 1
+KickScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+KickScroll.Parent = KickFrame
+
+local KickList = Instance.new("UIListLayout")
+KickList.Parent = KickScroll
+
+local SelectedPlayers = {}
+
+local function RefreshKickList()
+    for _, child in ipairs(KickScroll:GetChildren()) do
+        if child:IsA("Frame") then child:Destroy() end
+    end
+    SelectedPlayers = {}
+    local count = 0
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            count = count + 1
+            local item = Instance.new("Frame")
+            item.Size = UDim2.new(1, 0, 0, 20)
+            item.BackgroundTransparency = 1
+            item.Parent = KickScroll
+
+            local cb = Instance.new("TextButton")
+            cb.Size = UDim2.new(0, 16, 0, 16)
+            cb.Position = UDim2.new(0, 2, 0, 2)
+            cb.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            cb.Text = ""
+            cb.Parent = item
+
+            local pName = Instance.new("TextLabel")
+            pName.Size = UDim2.new(1, -25, 1, 0)
+            pName.Position = UDim2.new(0, 22, 0, 0)
+            pName.BackgroundTransparency = 1
+            pName.Text = p.DisplayName .. " (@" .. p.Name .. ")"
+            pName.TextColor3 = Color3.fromRGB(255, 255, 255)
+            pName.Font = Enum.Font.ArialBold
+            pName.TextSize = 11
+            pName.TextXAlignment = Enum.TextXAlignment.Left
+            pName.Parent = item
+
+            cb.MouseButton1Click:Connect(function()
+                if SelectedPlayers[p] then
+                    SelectedPlayers[p] = nil
+                    cb.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+                else
+                    SelectedPlayers[p] = true
+                    cb.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+                end
+            end)
+        end
+    end
+    KickScroll.CanvasSize = UDim2.new(0, 0, 0, count * 22)
+end
+
+local KickExecBtn = Instance.new("TextButton")
+KickExecBtn.Size = UDim2.new(1, -10, 0, 22)
+KickExecBtn.Position = UDim2.new(0, 5, 0, 92)
+KickExecBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+KickExecBtn.Text = "Xác nhận đá"
+KickExecBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+KickExecBtn.Font = Enum.Font.ArialBold
+KickExecBtn.TextSize = 12
+KickExecBtn.Parent = KickFrame
+
+KickExecBtn.MouseButton1Click:Connect(function()
+    local targetList = {}
+    for p, _ in pairs(SelectedPlayers) do
+        table.insert(targetList, p)
+    end
+    if #targetList == 0 then return end
+
+    local ConfirmFrame = Instance.new("Frame")
+    ConfirmFrame.Size = UDim2.new(0, 260, 0, 120)
+    ConfirmFrame.Position = UDim2.new(0.5, -130, 0.5, -60)
+    ConfirmFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    ConfirmFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    ConfirmFrame.ZIndex = 100
+    ConfirmFrame.Parent = ScreenGui
+
+    local ConfirmText = Instance.new("TextLabel")
+    ConfirmText.Size = UDim2.new(1, -10, 0, 60)
+    ConfirmText.Position = UDim2.new(0, 5, 0, 10)
+    ConfirmText.BackgroundTransparency = 1
+    ConfirmText.Text = "Bạn có chắc muốn đá " .. #targetList .. " người?"
+    ConfirmText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ConfirmText.Font = Enum.Font.ArialBold
+    ConfirmText.TextSize = 13
+    ConfirmText.TextWrapped = true
+    ConfirmText.ZIndex = 101
+    ConfirmText.Parent = ConfirmFrame
+
+    local YesBtn = Instance.new("TextButton")
+    YesBtn.Size = UDim2.new(0.4, 0, 0, 30)
+    YesBtn.Position = UDim2.new(0.08, 0, 0.65, 0)
+    YesBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+    YesBtn.Text = "Có"
+    YesBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    YesBtn.Font = Enum.Font.ArialBold
+    YesBtn.TextSize = 13
+    YesBtn.ZIndex = 101
+    YesBtn.Parent = ConfirmFrame
+
+    local NoBtn = Instance.new("TextButton")
+    NoBtn.Size = UDim2.new(0.4, 0, 0, 30)
+    NoBtn.Position = UDim2.new(0.52, 0, 0.65, 0)
+    NoBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+    NoBtn.Text = "Không"
+    NoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    NoBtn.Font = Enum.Font.ArialBold
+    NoBtn.TextSize = 13
+    NoBtn.ZIndex = 101
+    NoBtn.Parent = ConfirmFrame
+
+    YesBtn.MouseButton1Click:Connect(function()
+        for _, p in ipairs(targetList) do
+            pcall(function() p:Kick("Bị đá bởi HL Reducer.") end)
+            pcall(function() p.Parent = nil end)
+        end
+        ConfirmFrame:Destroy()
+        RefreshKickList()
+    end)
+
+    NoBtn.MouseButton1Click:Connect(function()
+        ConfirmFrame:Destroy()
+    end)
+end)
+
+table.insert(Connections, Players.PlayerAdded:Connect(RefreshKickList))
+table.insert(Connections, Players.PlayerRemoving:Connect(RefreshKickList))
+RefreshKickList()
+
+-- Chức năng 16, 17, 18, 21
+local _, u16 = CreateToggle("Troll Lỗi 404 (Fake 404)", "Fake404", function(v)
+    Fake404Frame.Visible = v
+end)
+Toggles["Fake404"] = u16
+
+local _, u17 = CreateToggle("Chat Toàn Server (Chat All)", "ChatAll", function(v)
+    ChatFrame.Visible = v
+end)
+Toggles["ChatAll"] = u17
+
+-- Reset Button
+local ResetBtnFrame = Instance.new("Frame")
+ResetBtnFrame.Size = UDim2.new(1, -10, 0, 35)
+ResetBtnFrame.BackgroundTransparency = 1
+ResetBtnFrame.Par
