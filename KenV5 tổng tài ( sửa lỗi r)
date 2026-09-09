@@ -1,0 +1,612 @@
+-- [[ MENU HL REDUCER - LOCAL SCRIPT ]] --
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local Mouse = LocalPlayer:GetMouse()
+
+-- System State
+local State = {
+    ESP = false,
+    ESPColor = Color3.fromRGB(255, 0, 0),
+    Noclip = false,
+    GodMode = false,
+    Fly = false,
+    Speed = 1,
+    Jump = 1,
+    KillNPC = false,
+    AutoAttack = false,
+    Aimbot = false,
+    FOV = false,
+    FOVRadius = 100,
+    Invisible = false,
+    ClickTP = false,
+    GhostMode = false,
+    FreezeNPC = false,
+    CustomChat = false
+}
+
+local Connections = {}
+local DrawObjs = {}
+
+-- Original Properties
+local OrigWalkSpeed = 16
+local OrigJumpPower = 50
+
+----------------------------------------------------
+-- FOV & ESP DRAWING SETUP
+----------------------------------------------------
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 1.5
+FOVCircle.Color = Color3.fromRGB(255, 255, 255)
+FOVCircle.Filled = false
+FOVCircle.Transparency = 1
+FOVCircle.Visible = false
+
+local function ClearESP()
+    for _, drawGroup in pairs(DrawObjs) do
+        for _, obj in pairs(drawGroup) do
+            if obj.Remove then obj:Remove() end
+        end
+    end
+    DrawObjs = {}
+end
+
+----------------------------------------------------
+-- GUI CREATION
+----------------------------------------------------
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "HLReducerMenu"
+ScreenGui.ResetOnSpawn = false
+local success, _ = pcall(function() ScreenGui.Parent = game:GetService("CoreGui") end)
+if not success then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+
+-- Toggle Button (≡)
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "ToggleBtn"
+ToggleBtn.Size = UDim2.new(0, 45, 0, 45)
+ToggleBtn.Position = UDim2.new(1, -60, 0, 15)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+ToggleBtn.BackgroundTransparency = 0.3
+ToggleBtn.Text = "≡"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.TextSize = 26
+ToggleBtn.Font = Enum.Font.SourceSansBold
+ToggleBtn.Parent = ScreenGui
+
+local UIStrokeToggle = Instance.new("UIStroke")
+UIStrokeToggle.Color = Color3.fromRGB(255, 255, 255)
+UIStrokeToggle.Thickness = 1.5
+UIStrokeToggle.Parent = ToggleBtn
+
+local UICornerToggle = Instance.new("UICorner")
+UICornerToggle.CornerRadius = UDim.new(1, 0)
+UICornerToggle.Parent = ToggleBtn
+
+-- Main Menu Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 360, 0, 480)
+MainFrame.Position = UDim2.new(0.5, -180, 0.5, -240)
+MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+MainFrame.BackgroundTransparency = 0.25
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Visible = true
+MainFrame.Parent = ScreenGui
+
+local UIStrokeMain = Instance.new("UIStroke")
+UIStrokeMain.Color = Color3.fromRGB(255, 255, 255)
+UIStrokeMain.Thickness = 1.5
+UIStrokeMain.Parent = MainFrame
+
+local UICornerMain = Instance.new("UICorner")
+UICornerMain.CornerRadius = UDim.new(0, 8)
+UICornerMain.Parent = MainFrame
+
+-- Title
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundTransparency = 1
+Title.Text = "Menu HL Reducer"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 20
+Title.Font = Enum.Font.SourceSansBold
+Title.Parent = MainFrame
+
+-- Scroll View
+local Scroll = Instance.new("ScrollingFrame")
+Scroll.Size = UDim2.new(1, -16, 1, -50)
+Scroll.Position = UDim2.new(0, 8, 0, 42)
+Scroll.BackgroundTransparency = 1
+Scroll.ScrollBarThickness = 4
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+Scroll.Parent = MainFrame
+
+local UIList = Instance.new("UIListLayout")
+UIList.Parent = Scroll
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
+UIList.Padding = UDim.new(0, 6)
+
+UIList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    Scroll.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y + 10)
+end)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+----------------------------------------------------
+-- HELPER FUNCTIONS FOR GUI COMPONENTS
+----------------------------------------------------
+local function CreateToggleButton(text, stateKey, onClick)
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(1, -8, 0, 32)
+    Btn.BackgroundColor3 = State[stateKey] and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(180, 0, 0)
+    Btn.Text = text .. ": " .. (State[stateKey] and "BẬT" or "TẮT")
+    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Btn.TextSize = 14
+    Btn.Font = Enum.Font.SourceSansBold
+    Btn.Parent = Scroll
+
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 4)
+    UICorner.Parent = Btn
+
+    Btn.MouseButton1Click:Connect(function()
+        State[stateKey] = not State[stateKey]
+        Btn.BackgroundColor3 = State[stateKey] and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(180, 0, 0)
+        Btn.Text = text .. ": " .. (State[stateKey] and "BẬT" or "TẮT")
+        if onClick then onClick(State[stateKey]) end
+    end)
+    return Btn
+end
+
+local function CreateSlider(text, stateKey, min, max, onChange)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, -8, 0, 45)
+    Frame.BackgroundTransparency = 1
+    Frame.Parent = Scroll
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, 0, 0, 18)
+    Label.BackgroundTransparency = 1
+    Label.Text = text .. " "
+    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Label.TextSize = 14
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Font = Enum.Font.SourceSansBold
+    Label.Parent = Frame
+
+    local ValLabel = Instance.new("TextLabel")
+    ValLabel.Size = UDim2.new(1, 0, 0, 18)
+    ValLabel.BackgroundTransparency = 1
+    ValLabel.Text = tostring(State[stateKey])
+    ValLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+    ValLabel.TextSize = 14
+    ValLabel.TextXAlignment = Enum.TextXAlignment.Right
+    ValLabel.Font = Enum.Font.SourceSansBold
+    ValLabel.Parent = Frame
+
+    local SliderBG = Instance.new("TextButton")
+    SliderBG.Size = UDim2.new(1, 0, 0, 16)
+    SliderBG.Position = UDim2.new(0, 0, 0, 22)
+    SliderBG.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    SliderBG.Text = ""
+    SliderBG.AutoButtonColor = false
+    SliderBG.Parent = Frame
+
+    local UICornerBG = Instance.new("UICorner")
+    UICornerBG.CornerRadius = UDim.new(0, 4)
+    UICornerBG.Parent = SliderBG
+
+    local Fill = Instance.new("Frame")
+    local initPercent = math.clamp((State[stateKey] - min) / (max - min), 0, 1)
+    Fill.Size = UDim2.new(initPercent, 0, 1, 0)
+    Fill.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+    Fill.Parent = SliderBG
+
+    local UICornerFill = Instance.new("UICorner")
+    UICornerFill.CornerRadius = UDim.new(0, 4)
+    UICornerFill.Parent = Fill
+
+    local dragging = false
+    local function UpdateVal(input)
+        local pos = math.clamp((input.Position.X - SliderBG.AbsolutePosition.X) / SliderBG.AbsoluteSize.X, 0, 1)
+        Fill.Size = UDim2.new(pos, 0, 1, 0)
+        local val = math.floor(min + (max - min) * pos)
+        State[stateKey] = val
+        ValLabel.Text = tostring(val)
+        if onChange then onChange(val) end
+    end
+
+    SliderBG.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            UpdateVal(input)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            UpdateVal(input)
+        end
+    end)
+end
+
+local function CreateActionButton(text, color, onClick)
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(1, -8, 0, 32)
+    Btn.BackgroundColor3 = color
+    Btn.Text = text
+    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Btn.TextSize = 14
+    Btn.Font = Enum.Font.SourceSansBold
+    Btn.Parent = Scroll
+
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 4)
+    UICorner.Parent = Btn
+
+    Btn.MouseButton1Click:Connect(onClick)
+end
+
+----------------------------------------------------
+-- CUSTOM CHAT GUI
+----------------------------------------------------
+local ChatFrame = Instance.new("Frame")
+ChatFrame.Name = "CustomChatFrame"
+ChatFrame.Size = UDim2.new(0, 300, 0, 100)
+ChatFrame.Position = UDim2.new(0.02, 0, 0.7, 0)
+ChatFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+ChatFrame.BackgroundTransparency = 0.3
+ChatFrame.Visible = false
+ChatFrame.Active = true
+ChatFrame.Draggable = true
+ChatFrame.Parent = ScreenGui
+
+local UICornerChat = Instance.new("UICorner")
+UICornerChat.CornerRadius = UDim.new(0, 6)
+UICornerChat.Parent = ChatFrame
+
+local UIStrokeChat = Instance.new("UIStroke")
+UIStrokeChat.Color = Color3.fromRGB(255, 255, 255)
+UIStrokeChat.Thickness = 1.5
+UIStrokeChat.Parent = ChatFrame
+
+local ChatBox = Instance.new("TextBox")
+ChatBox.Size = UDim2.new(1, -20, 0, 40)
+ChatBox.Position = UDim2.new(0, 10, 0, 10)
+ChatBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ChatBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+ChatBox.PlaceholderText = "Nhập tin nhắn..."
+ChatBox.Text = ""
+ChatBox.TextSize = 14
+ChatBox.Font = Enum.Font.SourceSans
+ChatBox.ClearTextOnFocus = false
+ChatBox.Parent = ChatFrame
+
+local SendBtn = Instance.new("TextButton")
+SendBtn.Size = UDim2.new(0.45, 0, 0, 30)
+SendBtn.Position = UDim2.new(0, 10, 0, 60)
+SendBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+SendBtn.Text = "Gửi"
+SendBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SendBtn.Font = Enum.Font.SourceSansBold
+SendBtn.Parent = ChatFrame
+
+local ClearBtn = Instance.new("TextButton")
+ClearBtn.Size = UDim2.new(0.45, 0, 0, 30)
+ClearBtn.Position = UDim2.new(0.55, -10, 0, 60)
+ClearBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+ClearBtn.Text = "Xóa"
+ClearBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ClearBtn.Font = Enum.Font.SourceSansBold
+ClearBtn.Parent = ChatFrame
+
+SendBtn.MouseButton1Click:Connect(function()
+    if ChatBox.Text ~= "" then
+        local text = ChatBox.Text
+        pcall(function()
+            local TextChatService = game:GetService("TextChatService")
+            if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+                local channel = TextChatService.TextChannels.RBXGeneral
+                if channel then channel:SendAsync(text) end
+            else
+                game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(text, "All")
+            end
+        end)
+        ChatBox.Text = ""
+    end
+end)
+
+ClearBtn.MouseButton1Click:Connect(function()
+    ChatBox.Text = ""
+end)
+
+----------------------------------------------------
+-- FEATURES SETUP & IMPLEMENTATION
+----------------------------------------------------
+
+-- 1. ESP Toggle
+CreateToggleButton("1. ESP", "ESP", function(v)
+    if not v then ClearESP() end
+end)
+
+-- Extra: ESP Color Button
+CreateActionButton("Đổi Màu ESP", Color3.fromRGB(80, 80, 80), function()
+    State.ESPColor = Color3.fromRGB(math.random(50, 255), math.random(50, 255), math.random(50, 255))
+end)
+
+-- 2. Xuyên vật thể
+CreateToggleButton("2. Xuyên vật thể", "Noclip")
+
+-- 3. Bất tử
+CreateToggleButton("3. Bất tử", "GodMode")
+
+-- 4. Bay
+CreateToggleButton("4. Bay", "Fly")
+
+-- 5. Tốc độ
+CreateSlider("5. Tốc độ", "Speed", 1, 100)
+
+-- 6. Nhảy cao
+CreateSlider("6. Nhảy cao", "Jump", 1, 100)
+
+-- 7. Tự động tiêu diệt NPC
+CreateToggleButton("7. Tự động tiêu diệt NPC", "KillNPC")
+
+-- 8. Tự động đánh NPC
+CreateToggleButton("8. Tự động đánh NPC", "AutoAttack")
+
+-- 9. Tự động ngắm
+CreateToggleButton("9. Tự động ngắm", "Aimbot")
+
+-- 10. Vòng tròn ngắm
+CreateToggleButton("10. Vòng tròn ngắm", "FOV", function(v)
+    FOVCircle.Visible = v
+end)
+CreateSlider("Góc ngắm FOV", "FOVRadius", 50, 880, function(v)
+    FOVCircle.Radius = v
+end)
+
+-- 11. Tàng hình
+CreateToggleButton("11. Tàng hình", "Invisible", function(v)
+    local char = LocalPlayer.Character
+    if char then
+        for _, p in pairs(char:GetDescendants()) do
+            if p:IsA("BasePart") or p:IsA("Decal") then
+                p.Transparency = v and 1 or 0
+            end
+        end
+    end
+end)
+
+-- 12. Dịch chuyển
+CreateToggleButton("12. Dịch chuyển (Click TP)", "ClickTP")
+
+-- 13. Chế độ bóng ma
+CreateToggleButton("13. Chế độ bóng ma", "GhostMode", function(v)
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        if v then
+            char.HumanoidRootPart.Anchored = true
+        else
+            char.HumanoidRootPart.Anchored = false
+        end
+    end
+end)
+
+-- 14. Đóng băng NPC
+CreateToggleButton("14. Đóng băng NPC", "FreezeNPC", function(v)
+    for _, model in pairs(workspace:GetChildren()) do
+        if model:IsA("Model") and model ~= LocalPlayer.Character and model:FindFirstChildOfClass("Humanoid") then
+            local hrp = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso")
+            if hrp then
+                hrp.Anchored = v
+            end
+        end
+    end
+end)
+
+-- 15. Chat toàn server
+CreateToggleButton("15. Chat toàn server", "CustomChat", function(v)
+    ChatFrame.Visible = v
+end)
+
+-- Forward declaration for reset function
+local ResetAll
+
+-- 16. Ngừng script
+CreateActionButton("16. Ngừng script", Color3.fromRGB(150, 0, 0), function()
+    ResetAll()
+    FOVCircle:Remove()
+    ClearESP()
+    for _, conn in pairs(Connections) do conn:Disconnect() end
+    ScreenGui:Destroy()
+end)
+
+-- 17. Đặt lại
+ResetAll = function()
+    State.ESP = false
+    State.Noclip = false
+    State.GodMode = false
+    State.Fly = false
+    State.Speed = 1
+    State.Jump = 1
+    State.KillNPC = false
+    State.AutoAttack = false
+    State.Aimbot = false
+    State.FOV = false
+    State.Invisible = false
+    State.ClickTP = false
+    State.GhostMode = false
+    State.FreezeNPC = false
+    State.CustomChat = false
+
+    FOVCircle.Visible = false
+    ChatFrame.Visible = false
+    ClearESP()
+
+    local char = LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.WalkSpeed = OrigWalkSpeed
+            hum.JumpPower = OrigJumpPower
+        end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then hrp.Anchored = false end
+        for _, p in pairs(char:GetDescendants()) do
+            if p:IsA("BasePart") or p:IsA("Decal") then
+                p.Transparency = 0
+            end
+        end
+    end
+
+    -- Reload Menu Visual State
+    for _, child in pairs(Scroll:GetChildren()) do
+        if child:IsA("TextButton") and child.Text:find(":") then
+            child.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+            local titleStr = child.Text:split(":")[1]
+            child.Text = titleStr .. ": TẮT"
+        end
+    end
+end
+
+CreateActionButton("17. Đặt lại", Color3.fromRGB(200, 100, 0), ResetAll)
+
+----------------------------------------------------
+-- CLICK TO TELEPORT LISTENER
+----------------------------------------------------
+table.insert(Connections, UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if State.ClickTP and input.UserInputType == Enum.UserInputType.MouseButton1 then
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local targetPos = Mouse.Hit.Position + Vector3.new(0, 3, 0)
+            char:MoveTo(targetPos)
+        end
+    end
+end))
+
+----------------------------------------------------
+-- ESP DRAWING FUNCTIONS
+----------------------------------------------------
+local function GetESPComponents(plr)
+    if not DrawObjs[plr] then
+        DrawObjs[plr] = {
+            Box = Drawing.new("Square"),
+            Name = Drawing.new("Text"),
+            Dist = Drawing.new("Text"),
+            Tracer = Drawing.new("Line"),
+            HealthBg = Drawing.new("Line"),
+            Health = Drawing.new("Line")
+        }
+        local d = DrawObjs[plr]
+        d.Box.Thickness = 1.5
+        d.Box.Filled = false
+        
+        d.Name.Size = 14
+        d.Name.Center = true
+        d.Name.Outline = true
+        d.Name.Color = Color3.fromRGB(255, 255, 255)
+        
+        d.Dist.Size = 12
+        d.Dist.Center = true
+        d.Dist.Outline = true
+        d.Dist.Color = Color3.fromRGB(200, 200, 200)
+
+        d.Tracer.Thickness = 1
+        d.HealthBg.Thickness = 3
+        d.HealthBg.Color = Color3.fromRGB(50, 50, 50)
+        d.Health.Thickness = 1.5
+        d.Health.Color = Color3.fromRGB(0, 255, 0)
+    end
+    return DrawObjs[plr]
+end
+
+----------------------------------------------------
+-- MAIN LOOP (RenderStepped)
+----------------------------------------------------
+table.insert(Connections, RunService.RenderStepped:Connect(function()
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+    -- Capture Defaults
+    if hum then
+        if hum.WalkSpeed > 0 and hum.WalkSpeed ~= (OrigWalkSpeed * State.Speed) then
+            OrigWalkSpeed = hum.WalkSpeed
+        end
+    end
+
+    -- 2. Noclip
+    if State.Noclip and char then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+        end
+    end
+
+    -- 3. God Mode
+    if State.GodMode and hum then
+        hum.Health = hum.MaxHealth
+    end
+
+    -- 4. Fly Movement & 13. Ghost Mode
+    if (State.Fly or State.GhostMode) and hrp then
+        local moveDir = Vector3.new()
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
+        
+        hrp.Velocity = Vector3.new(0, 0, 0)
+        hrp.CFrame = hrp.CFrame + (moveDir * (State.Speed * 0.8))
+    end
+
+    -- 5 & 6. Speed & Jump
+    if hum then
+        hum.WalkSpeed = OrigWalkSpeed * State.Speed
+        hum.JumpPower = OrigJumpPower * State.Jump
+    end
+
+    -- 10. FOV Circle Position
+    if State.FOV then
+        FOVCircle.Position = UserInputService:GetMouseLocation()
+    end
+
+    -- NPC Targeting Helper
+    local function GetNearestNPC()
+        local closest, minDist = nil, math.huge
+        for _, model in pairs(workspace:GetChildren()) do
+            if model:IsA("Model") and model ~= char and model:FindFirstChildOfClass("Humanoid") then
+                local nHrp = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso")
+                local nHum = model:FindFirstChildOfClass("Humanoid")
+                if nHrp and nHum and nHum.Health > 0 and not Players:GetPlayerFromCharacter(model) then
+                    local dist = (nHrp.Position - hrp.Position).Magnitude
+                    if dist < minDist then
+                        minDist = dist
+                        closest = model
+                    end
+                end
+            end
+        end
+        return closest
+    end
+
+    -- 7. Kill NPC
+    if State.KillNPC and hrp then
+        local npc = GetNearestNPC()
+        if npc then
+            
