@@ -1,0 +1,548 @@
+repeat task.wait() until game:IsLoaded()
+repeat task.wait() until game.Players.LocalPlayer and game.Players.LocalPlayer:FindFirstChild("PlayerGui")
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+local Mouse = LocalPlayer:GetMouse()
+
+local Connections = {}
+local State = {
+    ESP = false,
+    Noclip = false,
+    GodMode = false,
+    Fly = false,
+    SpeedVal = 1,
+    JumpVal = 1,
+    KillNPC = false,
+    AttackNPC = false,
+    Aimbot = false,
+    FOVEnabled = false,
+    FOVRadius = 200,
+    Invisibility = false,
+    TPClick = false,
+    GhostMode = false,
+    FreezeNPC = false,
+    ChatOpen = false
+}
+
+-- UI Setup
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "HLReducerMenu"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(0, 45, 0, 45)
+ToggleBtn.Position = UDim2.new(1, -60, 0, 15)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+ToggleBtn.BorderColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.BorderSizePixel = 1
+ToggleBtn.Text = "≡"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.Font = Enum.Font.ArialBold
+ToggleBtn.TextSize = 22
+ToggleBtn.Parent = ScreenGui
+
+local UICornerBtn = Instance.new("UICorner")
+UICornerBtn.CornerRadius = UDim.new(1, 0)
+UICornerBtn.Parent = ToggleBtn
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 380, 0, 500)
+MainFrame.Position = UDim2.new(0.5, -190, 0.5, -250)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.BackgroundTransparency = 0.2
+MainFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+MainFrame.BorderSizePixel = 1
+MainFrame.Visible = true
+MainFrame.Parent = ScreenGui
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+Title.BackgroundTransparency = 0.3
+Title.BorderColor3 = Color3.fromRGB(255, 255, 255)
+Title.BorderSizePixel = 1
+Title.Text = "Menu HL Reducer"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.ArialBold
+Title.TextSize = 18
+Title.Parent = MainFrame
+
+local Scroll = Instance.new("ScrollingFrame")
+Scroll.Size = UDim2.new(1, -10, 1, -50)
+Scroll.Position = UDim2.new(0, 5, 0, 45)
+Scroll.BackgroundTransparency = 1
+Scroll.BorderSizePixel = 0
+Scroll.ScrollBarThickness = 6
+Scroll.Parent = MainFrame
+
+local UIList = Instance.new("UIListLayout")
+UIList.Parent = Scroll
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
+UIList.Padding = UDim.new(0, 6)
+
+UIList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    Scroll.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y + 10)
+end)
+
+-- Dragging Toggle Button
+local dragging, dragInput, dragStart, startPos
+ToggleBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = ToggleBtn.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
+end)
+ToggleBtn.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        ToggleBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+-- Helper Functions
+local function CreateButton(text, callback)
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(1, -10, 0, 35)
+    Btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    Btn.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    Btn.BorderSizePixel = 1
+    Btn.Text = text .. " [TẮT]"
+    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Btn.Font = Enum.Font.ArialBold
+    Btn.TextSize = 14
+    Btn.Parent = Scroll
+
+    local state = false
+    Btn.MouseButton1Click:Connect(function()
+        state = not state
+        if state then
+            Btn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+            Btn.Text = text .. " [BẬT]"
+        else
+            Btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+            Btn.Text = text .. " [TẮT]"
+        end
+        callback(state, Btn)
+    end)
+    return Btn
+end
+
+local function CreateSlider(text, min, max, default, callback)
+    local Container = Instance.new("Frame")
+    Container.Size = UDim2.new(1, -10, 0, 50)
+    Container.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    Container.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    Container.BorderSizePixel = 1
+    Container.Parent = Scroll
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, 0, 0, 20)
+    Label.BackgroundTransparency = 1
+    Label.Text = text
+    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Label.Font = Enum.Font.ArialBold
+    Label.TextSize = 13
+    Label.Parent = Container
+
+    local ValLabel = Instance.new("TextLabel")
+    ValLabel.Size = UDim2.new(1, 0, 0, 20)
+    ValLabel.Position = UDim2.new(0, 0, 0, 25)
+    ValLabel.BackgroundTransparency = 1
+    ValLabel.Text = tostring(default)
+    ValLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+    ValLabel.Font = Enum.Font.ArialBold
+    ValLabel.TextSize = 14
+    ValLabel.Parent = Container
+
+    local SliderBar = Instance.new("TextButton")
+    SliderBar.Size = UDim2.new(1, -20, 0, 10)
+    SliderBar.Position = UDim2.new(0, 10, 0, 38)
+    SliderBar.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    SliderBar.Text = ""
+    SliderBar.Parent = Container
+
+    local Fill = Instance.new("Frame")
+    Fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    Fill.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+    Fill.BorderSizePixel = 0
+    Fill.Parent = SliderBar
+
+    local sliding = false
+    local function update(input)
+        local pos = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
+        Fill.Size = UDim2.new(pos, 0, 1, 0)
+        local val = math.floor(min + (max - min) * pos)
+        ValLabel.Text = tostring(val)
+        callback(val)
+    end
+
+    SliderBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            sliding = true
+            update(input)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            sliding = false
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            update(input)
+        end
+    end)
+    
+    return {
+        Set = function(val)
+            val = math.clamp(val, min, max)
+            Fill.Size = UDim2.new((val - min) / (max - min), 0, 1, 0)
+            ValLabel.Text = tostring(val)
+            callback(val)
+        end
+    }
+end
+
+-- FOV Drawing
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 1.5
+FOVCircle.Color = Color3.fromRGB(255, 255, 255)
+FOVCircle.Filled = false
+FOVCircle.Transparency = 1
+FOVCircle.Visible = false
+
+-- ESP System
+local ESPDrawings = {}
+
+local function ClearESP(plr)
+    if ESPDrawings[plr] then
+        for _, obj in pairs(ESPDrawings[plr]) do
+            obj:Remove()
+        end
+        ESPDrawings[plr] = nil
+    end
+end
+
+local function UpdateESP()
+    if not State.ESP then
+        for plr, objs in pairs(ESPDrawings) do
+            ClearESP(plr)
+        end
+        return
+    end
+
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            if not ESPDrawings[plr] then
+                ESPDrawings[plr] = {
+                    Box = Drawing.new("Square"),
+                    Name = Drawing.new("Text"),
+                    Dist = Drawing.new("Text"),
+                    Tracer = Drawing.new("Line"),
+                    HealthBarOutline = Drawing.new("Square"),
+                    HealthBar = Drawing.new("Square")
+                }
+                for _, d in pairs(ESPDrawings[plr]) do
+                    d.Visible = false
+                end
+            end
+
+            local objs = ESPDrawings[plr]
+            local char = plr.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+            if char and hum and hrp and hum.Health > 0 then
+                local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                if onScreen then
+                    local head = char:FindFirstChild("Head")
+                    local headPos = head and Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0)) or Camera:WorldToViewportPoint(hrp.Position + Vector3.new(0, 3, 0))
+                    local legPos = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+
+                    local height = math.abs(headPos.Y - legPos.Y)
+                    local width = height / 2
+
+                    -- Raycast visibility check
+                    local ray = Ray.new(Camera.CFrame.Position, (hrp.Position - Camera.CFrame.Position).Unit * 500)
+                    local hit = Workspace:FindPartOnWithIgnoreList(ray, {LocalPlayer.Character, char})
+                    local isVisible = not hit
+                    local color = isVisible and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+
+                    objs.Box.Size = Vector2.new(width, height)
+                    objs.Box.Position = Vector2.new(pos.X - width / 2, pos.Y - height / 2)
+                    objs.Box.Color = color
+                    objs.Box.Thickness = 1.5
+                    objs.Box.Visible = true
+
+                    objs.Name.Text = plr.Name
+                    objs.Name.Size = 14
+                    objs.Name.Center = true
+                    objs.Name.Outline = true
+                    objs.Name.Color = Color3.fromRGB(255, 255, 255)
+                    objs.Name.Position = Vector2.new(pos.X, pos.Y - height / 2 - 16)
+                    objs.Name.Visible = true
+
+                    local distMeters = math.floor((hrp.Position - Camera.CFrame.Position).Magnitude)
+                    objs.Dist.Text = distMeters .. "m"
+                    objs.Dist.Size = 12
+                    objs.Dist.Center = true
+                    objs.Dist.Outline = true
+                    objs.Dist.Color = Color3.fromRGB(255, 255, 255)
+                    objs.Dist.Position = Vector2.new(pos.X, pos.Y + height / 2 + 2)
+                    objs.Dist.Visible = true
+
+                    objs.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                    objs.Tracer.To = Vector2.new(pos.X, pos.Y + height / 2)
+                    objs.Tracer.Color = color
+                    objs.Tracer.Thickness = 1
+                    objs.Tracer.Visible = true
+
+                    local healthPercent = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
+                    objs.HealthBarOutline.Size = Vector2.new(4, height)
+                    objs.HealthBarOutline.Position = Vector2.new(pos.X - width / 2 - 6, pos.Y - height / 2)
+                    objs.HealthBarOutline.Color = Color3.fromRGB(0, 0, 0)
+                    objs.HealthBarOutline.Filled = true
+                    objs.HealthBarOutline.Visible = true
+
+                    objs.HealthBar.Size = Vector2.new(2, height * healthPercent)
+                    objs.HealthBar.Position = Vector2.new(pos.X - width / 2 - 5, pos.Y + height / 2 - (height * healthPercent))
+                    objs.HealthBar.Color = Color3.fromRGB(255 * (1 - healthPercent), 255 * healthPercent, 0)
+                    objs.HealthBar.Filled = true
+                    objs.HealthBar.Visible = true
+                else
+                    for _, d in pairs(objs) do d.Visible = false end
+                end
+            else
+                for _, d in pairs(objs) do d.Visible = false end
+            end
+        end
+    end
+end
+
+Players.PlayerRemoving:Connect(ClearESP)
+
+-- 1. ESP
+local espBtn = CreateButton("1. ESP", function(s) State.ESP = s end)
+
+-- 2. Xuyên vật thể
+local noclipBtn = CreateButton("2. Xuyên vật thể", function(s) State.Noclip = s end)
+
+-- 3. Bất tử
+local godBtn = CreateButton("3. Bất tử", function(s) State.GodMode = s end)
+
+-- 4. Bay
+local flyBtn = CreateButton("4. Bay", function(s) State.Fly = s end)
+
+-- 5. Tốc độ
+local speedSlider = CreateSlider("5. Tốc độ", 1, 100, 1, function(v)
+    State.SpeedVal = v
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = 16 + (v / 100) * 150000
+    end
+end)
+
+-- 6. Nhảy cao
+local jumpSlider = CreateSlider("6. Nhảy cao", 1, 100, 1, function(v)
+    State.JumpVal = v
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").JumpPower = 50 + (v / 100) * 9950
+    end
+end)
+
+-- 7. Tự động tiêu diệt NPC
+local killNPCBtn = CreateButton("7. Tự động tiêu diệt NPC", function(s) State.KillNPC = s end)
+
+-- 8. Tự động đánh NPC
+local attackNPCBtn = CreateButton("8. Tự động đánh NPC", function(s) State.AttackNPC = s end)
+
+-- 9. Tự động ngắm
+local aimbotBtn = CreateButton("9. Tự động ngắm", function(s) State.Aimbot = s end)
+
+-- 10. Vòng tròn ngắm
+local fovBtn = CreateButton("10. Vòng tròn ngắm", function(s)
+    State.FOVEnabled = s
+    FOVCircle.Visible = s
+end)
+local fovSlider = CreateSlider("Rán bán kính FOV", 50, 880, 200, function(v)
+    State.FOVRadius = v
+    FOVCircle.Radius = v
+end)
+
+-- 11. Tàng hình
+local invisBtn = CreateButton("11. Tàng hình", function(s)
+    State.Invisibility = s
+    if LocalPlayer.Character then
+        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+            if v:IsA("BasePart") or v:IsA("Decal") then
+                v.Transparency = s and 1 or 0
+            end
+        end
+    end
+end)
+
+-- 12. Dịch chuyển (Click TP)
+local tpBtn = CreateButton("12. Dịch chuyển (Click)", function(s) State.TPClick = s end)
+
+Mouse.Button1Down:Connect(function()
+    if State.TPClick and Mouse.Hit then
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = Mouse.Hit + Vector3.new(0, 3, 0)
+        end
+    end
+end)
+
+-- 13. Chế độ bóng ma
+local ghostBtn = CreateButton("13. Chế độ bóng ma", function(s)
+    State.GhostMode = s
+    if LocalPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum.PlatformStand = s end
+        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+            if v:IsA("BasePart") or v:IsA("Decal") then
+                v.Transparency = s and 1 or 0
+            end
+        end
+        Camera.CameraType = s and Enum.CameraType.Follow or Enum.CameraType.Custom
+    end
+end)
+
+-- 14. Đóng băng NPC
+local freezeBtn = CreateButton("14. Đóng băng NPC", function(s) State.FreezeNPC = s end)
+
+-- 15. Chat toàn server
+local ChatFrame = Instance.new("Frame")
+ChatFrame.Size = UDim2.new(1, -10, 0, 70)
+ChatFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+ChatFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+ChatFrame.BorderSizePixel = 1
+ChatFrame.Visible = false
+ChatFrame.Parent = Scroll
+
+local ChatInput = Instance.new("TextBox")
+ChatInput.Size = UDim2.new(1, -10, 0, 30)
+ChatInput.Position = UDim2.new(0, 5, 0, 5)
+ChatInput.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+ChatInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+ChatInput.PlaceholderText = "Nhập tin nhắn..."
+ChatInput.Font = Enum.Font.ArialBold
+ChatInput.TextSize = 13
+ChatInput.Parent = ChatFrame
+
+local SendBtn = Instance.new("TextButton")
+SendBtn.Size = UDim2.new(0.48, 0, 0, 25)
+SendBtn.Position = UDim2.new(0, 5, 0, 40)
+SendBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+SendBtn.Text = "Gửi"
+SendBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SendBtn.Font = Enum.Font.ArialBold
+SendBtn.Parent = ChatFrame
+
+local ClearBtn = Instance.new("TextButton")
+ClearBtn.Size = UDim2.new(0.48, 0, 0, 25)
+ClearBtn.Position = UDim2.new(0.5, 2, 0, 40)
+ClearBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+ClearBtn.Text = "Xóa"
+ClearBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ClearBtn.Font = Enum.Font.ArialBold
+ClearBtn.Parent = ChatFrame
+
+local chatToggleBtn = CreateButton("15. Chat toàn server", function(s)
+    State.ChatOpen = s
+    ChatFrame.Visible = s
+end)
+
+SendBtn.MouseButton1Click:Connect(function()
+    if ChatInput.Text ~= "" then
+        local TextChatService = game:GetService("TextChatService")
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+        if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+            local generalChannel = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
+            if generalChannel then
+                generalChannel:SendAsync(ChatInput.Text)
+            end
+        else
+            local defaultChat = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents")
+            if defaultChat and defaultChat:FindFirstChild("SayMessageRequest") then
+                defaultChat.SayMessageRequest:FireServer(ChatInput.Text, "All")
+            end
+        end
+        ChatInput.Text = ""
+    end
+end)
+
+ClearBtn.MouseButton1Click:Connect(function()
+    ChatInput.Text = ""
+end)
+
+-- 16. Ngừng script
+local stopBtn = Instance.new("TextButton")
+stopBtn.Size = UDim2.new(1, -10, 0, 35)
+stopBtn.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+stopBtn.BorderColor3 = Color3.fromRGB(255, 255, 255)
+stopBtn.Text = "16. Ngừng script"
+stopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+stopBtn.Font = Enum.Font.ArialBold
+stopBtn.TextSize = 14
+stopBtn.Parent = Scroll
+
+-- 17. Đặt lại
+local resetBtn = Instance.new("TextButton")
+resetBtn.Size = UDim2.new(1, -10, 0, 35)
+resetBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 0)
+resetBtn.BorderColor3 = Color3.fromRGB(255, 255, 255)
+resetBtn.Text = "17. Đặt lại"
+resetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+resetBtn.Font = Enum.Font.ArialBold
+resetBtn.TextSize = 14
+resetBtn.Parent = Scroll
+
+-- Helper NPC Lookup
+local function GetNPCs()
+    local npcs = {}
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("Model") and v:FindFirstChildOfClass("Humanoid") and not Players:GetPlayerFromCharacter(v) then
+            table.insert(npcs, v)
+        end
+    end
+    return npcs
+end
+
+local function GetClosestTarget()
+    local closest, minDist = nil, State.FOVRadius
+    local mousePos = UserInputService:GetMouseLocation()
+
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health > 0 then
+                local pos, onScreen = Camera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
+                if onScreen then
+                    local dist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                    if dist < minDist then
+                        minDist = dist
+                        closest = plr.Character.HumanoidRootPart
+                    end
+                end
+            e
