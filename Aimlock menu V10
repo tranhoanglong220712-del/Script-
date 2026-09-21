@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu Điều Khẩu Simulation</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #090d16;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Canvas mô phỏng đồ họa toàn màn hình */
+        #simCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Nút tròn nổi (Floating Action Button) */
+        .fab-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 25px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #ffffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.5);
+            cursor: pointer;
+            z-index: 9999;
+            user-select: none;
+            transition: transform 0.2s, background 0.3s;
+        }
+
+        .fab-btn:active {
+            transform: scale(0.9);
+        }
+
+        /* Bảng Menu Điều Khẩu */
+        .menu-container {
+            position: fixed;
+            bottom: 100px;
+            right: 25px;
+            width: 270px;
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid #334155;
+            backdrop-filter: blur(10px);
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            z-index: 9998;
+            display: block; /* Mặc định BẬT SẴN Menu khi mở file */
+        }
+
+        .menu-title {
+            font-size: 15px;
+            font-weight: bold;
+            color: #38bdf8;
+            text-align: center;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #334155;
+            letter-spacing: 0.5px;
+        }
+
+        /* Hàng chứa nút gạt Bật/Tắt */
+        .control-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: #e2e8f0;
+        }
+
+        /* Công tắc Bật/Tắt (Toggle Switch) */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 22px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #475569;
+            transition: 0.3s;
+            border-radius: 22px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #ffffff;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #10b981;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Màn hình đồ họa mô phỏng -->
+    <canvas id="simCanvas"></canvas>
+
+    <!-- Nút tròn nổi dùng để Bật/Tắt Menu -->
+    <div class="fab-btn" id="fabBtn">MENU</div>
+
+    <!-- Bảng điều khiển Menu chứa các chức năng Bật/Tắt -->
+    <div class="menu-container" id="menuBox">
+        <div class="menu-title">BẢNG ĐIỀU KHIỂN</div>
+
+        <div class="control-item">
+            <span>Khung Box người</span>
+            <label class="switch">
+                <input type="checkbox" id="toggleBox" checked> <!-- Tự bật sẵn -->
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <div class="control-item">
+            <span>Mũi tên chỉ đỉnh</span>
+            <label class="switch">
+                <input type="checkbox" id="toggleArrow" checked> <!-- Tự bật sẵn -->
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <div class="control-item">
+            <span>Thông tin vị trí</span>
+            <label class="switch">
+                <input type="checkbox" id="toggleInfo" checked> <!-- Tự bật sẵn -->
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <script>
+        // 1. Quản lý Ẩn/Hiện Menu bằng nút tròn nổi (FAB)
+        const fabBtn = document.getElementById('fabBtn');
+        const menuBox = document.getElementById('menuBox');
+
+        fabBtn.addEventListener('click', () => {
+            if (menuBox.style.display === 'none') {
+                menuBox.style.display = 'block';
+            } else {
+                menuBox.style.display = 'none';
+            }
+        });
+
+        // 2. Khởi tạo Canvas đồ họa
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Lấy trạng thái của các nút gạt Bật/Tắt
+        const toggleBox = document.getElementById('toggleBox');
+        const toggleArrow = document.getElementById('toggleArrow');
+        const toggleInfo = document.getElementById('toggleInfo');
+
+        // Giả lập danh sách đối tượng người di chuyển
+        const targets = [
+            { x: 0.25, y: 0.35, w: 46, h: 90, speed: 0.0012, id: 'Player_01' },
+            { x: 0.50, y: 0.45, w: 46, h: 90, speed: -0.0015, id: 'Player_02' },
+            { x: 0.75, y: 0.28, w: 46, h: 90, speed: 0.0010, id: 'Player_03' }
+        ];
+
+        // Vòng lặp vẽ đồ họa liên tục (Cập nhật Bật/Tắt tức thì)
+        function drawLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            targets.forEach(target => {
+                // Di chuyển giả lập
+                target.x += target.speed;
+                if (target.x > 0.82 || target.x < 0.18) target.speed *= -1;
+
+                const posX = target.x * canvas.width;
+                const posY = target.y * canvas.height;
+                const feetX = posX + target.w / 2;
+                const feetY = posY + target.h;
+
+                // CHỨC NĂNG 1: Mũi tên từ chân chỉ lên đỉnh màn hình
+                if (toggleArrow.checked) {
+                    ctx.beginPath();
+                    ctx.moveTo(feetX, feetY);
+                    ctx.lineTo(feetX, 0); // Vẽ đường thẳng lên đỉnh (y = 0)
+                    ctx.strokeStyle = '#ef4444';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Đầu mũi tên tại đỉnh màn hình
+                    ctx.beginPath();
+                    ctx.fillStyle = '#ef4444';
+                    ctx.moveTo(feetX, 0);
+                    ctx.lineTo(feetX - 6, 12);
+                    ctx.lineTo(feetX + 6, 12);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                // CHỨC NĂNG 2: Khung Bounding Box xung quanh dạng người
+                if (toggleBox.checked) {
+                    ctx.strokeStyle = '#10b981';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(posX, posY, target.w, target.h);
+                }
+
+                // CHỨC NĂNG 3: Nhãn thông tin tên và vị trí
+                if (toggleInfo.checked) {
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.font = '12px sans-serif';
+                    ctx.fillText(target.id, posX, posY - 8);
+                }
+            });
+
+            requestAnimationFrame(drawLoop);
+        }
+
+        // Chạy vòng lặp ngay khi mở file
+        drawLoop();
+    </script>
+</body>
+</html>
